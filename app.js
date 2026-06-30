@@ -1,5 +1,6 @@
 ﻿const STORAGE_KEY = "onboarding-school-v2";
 const SESSION_KEY = "onboarding-session-v1";
+const DATA_VERSION = "20260630-1605";
 const ADMIN_PASSWORD = "admin123";
 const ONBOARDING_PURPOSE = "새롭게 섹션A의 식구가 된 간사가 본격적인 실무에 들어가기 전에 업무를 수행하는데 있어서 필요한 공동체 이해, 직무 수행에 필요한 기초 역량 강화, 담당하게 될 업무 사전준비를 통해 조기 적응력을 가속화시켜 주어진 업무를 정직하고 책임감 있는 자세로 열정을 다해 수행하도록 돕기 위한 과정입니다.";
 
@@ -37,6 +38,7 @@ const seed = {
   progress: {},
   submissions: [],
   submissionDriveUrl: "https://drive.google.com/drive/folders/1eKBCV2TbClFEXYCqlnQQo4Feh9QvXfN4?usp=drive_link",
+  dataVersion: DATA_VERSION,
 };
 let state = normalizeState(loadState());
 let session = loadSession();
@@ -46,7 +48,11 @@ let activeView = "dashboard";
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return structuredClone(seed);
-  try { return { ...structuredClone(seed), ...JSON.parse(saved) }; }
+  try {
+    const parsed = JSON.parse(saved);
+    if (parsed.dataVersion !== DATA_VERSION) return structuredClone(seed);
+    return { ...structuredClone(seed), ...parsed };
+  }
   catch { return structuredClone(seed); }
 }
 function normalizeState(nextState) {
@@ -83,6 +89,7 @@ function normalizeState(nextState) {
   nextState.progress ||= {};
   nextState.submissions ||= [];
   nextState.submissionDriveUrl = nextState.submissionDriveUrl || "";
+  nextState.dataVersion = DATA_VERSION;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
   return nextState;
 }
@@ -686,6 +693,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (session?.role === "admin" || state.users.some(u => u.id === session?.userId)) showApp();
   else showLogin();
 });
+
+
 
 
 
