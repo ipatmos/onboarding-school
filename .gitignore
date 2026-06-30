@@ -1,0 +1,19 @@
+﻿# Local Codex helper files
+.codex-*.ps1
+.codex/
+.agents/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+.vscode/
+.idea/
+
+# Dependencies/build artifacts, if added later
+node_modules/
+dist/
+build/
+
+github-upload/
