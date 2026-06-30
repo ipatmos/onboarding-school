@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>신입 간사 온보딩 스쿨</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <section id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="brand login-brand">
+        <div class="brand-logo"><img src="assets/patmos-logo.png" alt="팻머스 로고" onload="this.parentElement.classList.add('has-logo')" onerror="this.remove()" /><span>O</span></div>
+        <div>
+          <p class="eyebrow">PATMOS TRAINING</p>
+          <h1>신입 간사<br />온보딩 스쿨</h1>
+        </div>
+      </div>
+      <form id="loginForm" class="form-grid">
+        <div class="field">
+          <label for="loginAccount">계정</label>
+          <select id="loginAccount"></select>
+        </div>
+        <div class="field">
+          <label for="loginPassword">비밀번호</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" />
+        </div>
+        <p id="loginError" class="login-error" role="alert"></p>
+        <button class="primary" type="submit">로그인</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo"><img src="assets/patmos-logo.png" alt="팻머스 로고" onload="this.parentElement.classList.add('has-logo')" onerror="this.remove()" /><span>O</span></div>
+        <div>
+          <p class="eyebrow">PATMOS TRAINING</p>
+          <h1>신입 간사<br />온보딩 스쿨</h1>
+        </div>
+      </div>
+      <div id="sessionCard" class="profile-card"></div>
+      <nav class="nav" aria-label="주요 메뉴">
+        <button class="nav-item active" data-view="dashboard" type="button">나의 온보딩</button>
+        <button class="nav-item" data-view="courses" type="button">훈련 과정</button>
+        <button class="nav-item" data-view="submissions" type="button">제출함</button>
+        <button class="nav-item admin-only" data-view="admin" type="button">관리자</button>
+      </nav>
+      <div class="sidebar-note">
+        <strong>1차 프로토타입</strong>
+        <p>진행 데이터는 이 브라우저에 저장됩니다. 계정별 로그인으로 간사 화면과 관리자 화면을 분리합니다.</p>
+      </div>
+    </aside>
+    <main class="main">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">ONBOARDING LMS</p>
+          <h2 id="viewTitle">나의 온보딩</h2>
+        </div>
+        <button id="resetDemo" class="ghost admin-only" type="button">데모 초기화</button>
+      </section>
+      <section id="dashboardView" class="view active-view"></section>
+      <section id="coursesView" class="view"></section>
+      <section id="submissionsView" class="view"></section>
+      <section id="adminView" class="view"></section>
+    </main>
+  </div>
+  <dialog id="contentDialog" class="modal">
+    <div class="modal-header">
+      <div>
+        <p id="modalType" class="eyebrow"></p>
+        <h3 id="modalTitle"></h3>
+      </div>
+      <button id="closeDialog" class="icon-btn" aria-label="닫기" type="button">x</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+  </dialog>
+  <script src="app.js"></script>
+</body>
+</html>
