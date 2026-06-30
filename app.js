@@ -15,27 +15,29 @@ const seed = {
     { id: "write", name: "교재 집필" },
   ],
   users: [
-    { id: "u1", name: "김하은", departmentId: "holy", roleId: "write", status: "훈련 중", pin: "1111" },
-    { id: "u2", name: "이서준", departmentId: "yekko", roleId: "edit", status: "훈련 중", pin: "2222" },
+    { id: "u1", name: "나현영", departmentId: "holy", roleId: "edit", status: "신입", pin: "0000" },
   ],
   contents: [
-    { id: "C001", part: "파트 1. 공동체 이해", title: "내규와 생활수칙 확인", type: "문서", dept: "all", role: "all", order: 1, minutes: 30, url: "", description: "구글드라이브에 공유된 내규와 생활수칙 문서를 읽고 확인합니다. 이해되지 않는 부분이 있으면 질문을 남깁니다." },
-    { id: "C002", part: "파트 1. 공동체 이해", title: "파타모스 문화와 홈페이지 분석", type: "리포트", dept: "all", role: "all", order: 2, minutes: 60, url: "https://patmos.co.kr", description: "홈페이지에서 비전, 미션, 핵심 가치, 사역, 구조를 분석하고 개선 아이디어를 작성합니다." },
-    { id: "C003", part: "파트 2-1. 영상 강의", title: "문화와 다중지능", type: "영상", dept: "all", role: "all", order: 3, minutes: 80, url: "", description: "강의를 시청하고 요약문과 업무 적용점을 제출합니다." },
-    { id: "C004", part: "파트 2-1. 영상 강의", title: "2026년 커리큘럼 주제 이해", type: "영상", dept: "all", role: "all", order: 4, minutes: 80, url: "", description: "2026년 커리큘럼의 방향과 주제를 이해하고 요약문을 제출합니다." },
-    { id: "C005", part: "파트 2-1. 영상 강의", title: "2026년 홀리키즈 커리큘럼 강의", type: "영상", dept: "holy", role: "all", order: 5, minutes: 80, url: "", description: "홀리키즈 간사를 위한 부서별 커리큘럼 강의입니다." },
-    { id: "C006", part: "파트 2-1. 영상 강의", title: "2026년 예꼬클럽 커리큘럼 강의", type: "영상", dept: "yekko", role: "all", order: 5, minutes: 80, url: "", description: "예꼬클럽 간사를 위한 부서별 커리큘럼 강의입니다." },
-    { id: "C007", part: "파트 2-1. 영상 강의", title: "예배 시연 분석", type: "영상", dept: "all", role: "all", order: 6, minutes: 50, url: "", description: "예배 시연을 보고 예배 흐름과 개선점을 분석합니다." },
-    { id: "C008", part: "파트 2-2. 독서 과제", title: "지성에서 영성으로", type: "독서", dept: "all", role: "all", order: 7, minutes: 180, url: "", description: "업무 시간 중 읽을 독서 과제입니다. 독후감을 제출합니다." },
-    { id: "C009", part: "파트 2-2. 독서 과제", title: "하이테크 예배", type: "독서", dept: "all", role: "all", order: 8, minutes: 180, url: "", description: "예배와 기술의 관계를 읽고 사역 적용점을 정리합니다." },
-    { id: "C010", part: "파트 3. 역할별 훈련", title: "편집 기본 원칙", type: "실습", dept: "all", role: "edit", order: 9, minutes: 60, url: "", description: "교정, 교열, 문장 정리의 기본 원칙을 실습합니다." },
-    { id: "C011", part: "파트 3. 역할별 훈련", title: "교재 원고 작성 실습", type: "실습", dept: "all", role: "write", order: 9, minutes: 60, url: "", description: "공과 흐름에 맞춰 교사용 원고 초안을 작성합니다." },
+    { id: "C001", part: "파트 1. 공동체 이해", title: "내규와 생활수칙 확인", type: "문서", dept: "all", role: "all", order: 1, minutes: 30, url: "https://drive.google.com/drive/folders/1IBzMMxVg9wDus_ll5mewSa4vddbElHms?usp=drive_link", description: "구글드라이브에 공유된 내규와 생활수칙 문서를 읽고 확인합니다. 이해되지 않는 부분이 있으면 질문을 남깁니다." },
+    { id: "C002", part: "파트 1. 공동체 이해", title: "팻머스 홈페이지 분석", type: "리포트", dept: "all", role: "all", order: 2, minutes: 60, url: "https://www.ipatmos.co.kr/", description: "홈페이지에서 비전, 미션, 핵심 가치, 사역, 구조를 분석하고 개선 아이디어를 작성합니다." },
+    { id: "C003", part: "파트 2-1. 영상 강의", title: "문화와 다중지능", type: "영상", dept: "all", role: "all", order: 3, minutes: 80, url: "https://youtu.be/q-Jt3iEsAAg?si=gGV4zB2VPZS9HKw8\nhttps://youtu.be/R8x8H3wL4SQ?si=slu6znXOPpaHssgh", description: "강의를 시청하고 요약문과 업무 적용점을 제출합니다." },
+    { id: "C004", part: "파트 2-1. 영상 강의", title: "2026년 커리큘럼 주제 해설", type: "영상", dept: "all", role: "all", order: 4, minutes: 20, url: "https://youtu.be/aYhICtXmcRg?si=ctfqZjvDmeDJ2tZB", description: "2026년 커리큘럼의 방향과 주제를 이해하고 요약문을 제출합니다." },
+    { id: "C005", part: "파트 2-1. 영상 강의", title: "2026년 홀리키즈 커리큘럼 강의", type: "영상", dept: "holy", role: "all", order: 5, minutes: 20, url: "https://vimeo.com/1135642764/00dd514323", description: "홀리키즈 간사를 위한 부서별 커리큘럼 강의입니다." },
+    { id: "C006", part: "파트 2-1. 영상 강의", title: "홀리키즈 예배 시연", type: "영상", dept: "holy", role: "all", order: 6, minutes: 50, url: "https://youtu.be/NAwf9LOeQHY", description: "예배 시연을 보고 예배 흐름과 개선점을 분석합니다." },
+    { id: "C007", part: "파트 2-1. 영상 강의", title: "홀리키즈 예배 강의", type: "영상", dept: "holy", role: "all", order: 7, minutes: 30, url: "https://vimeo.com/1135642375/0d9767e9d3", description: "홀리키즈 예배의 순서의 구조를 이해합니다." },
+    { id: "C008", part: "파트 2-1. 영상 강의", title: "홀리키즈 공과 강의", type: "영상", dept: "holy", role: "all", order: 8, minutes: 30, url: "https://vimeo.com/1135641979/794a00f42f", description: "홀리키즈 공과의 순서의 구조를 이해합니다." },
+    { id: "C009", part: "파트 2-1. 영상 강의", title: "2026년 예꼬클럽 커리큘럼 강의", type: "영상", dept: "yekko", role: "all", order: 9, minutes: 20, url: "https://vimeo.com/1135626198/04e827f827", description: "예꼬클럽 간사를 위한 부서별 커리큘럼 강의입니다." },
+    { id: "C010", part: "파트 2-1. 영상 강의", title: "예꼬클럽 예배 강의", type: "영상", dept: "yekko", role: "all", order: 10, minutes: 40, url: "https://vimeo.com/1135627565/2cafe4ba52", description: "예꼬클럽 간사를 위한 예배 강의입니다." },
+    { id: "C011", part: "파트 2-1. 영상 강의", title: "예꼬클럽 공과 강의", type: "영상", dept: "yekko", role: "all", order: 11, minutes: 30, url: "https://vimeo.com/1135626198/04e827f827", description: "예꼬클럽 간사를 위한 아이라이크 공과 강의입니다." },
+    { id: "C012", part: "파트 2-2. 독서 과제", title: "지력혁명", type: "독서", dept: "all", role: "all", order: 12, minutes: 179, url: "", description: "다중지능 이해를 돕는 입문서입니다. (독서 과제는 업무 외 시간에 진행합니다.)" },
+    { id: "C013", part: "파트 2-2. 독서 과제", title: "하이테크 예배", type: "독서", dept: "all", role: "all", order: 13, minutes: 180, url: "", description: "예배와 기술의 관계를 읽고 사역 적용점을 정리합니다. (독서 과제는 업무 외 시간에 진행합니다.)" },
+    { id: "C014", part: "파트 2-2. 독서 과제", title: "빨려드는 어린이 설교", type: "독서", dept: "all", role: "all", order: 14, minutes: 180, url: "", description: "설교에서의 오브젝트 레슨의 이해를 돕습니다." },
+    { id: "C015", part: "파트 2-2. 독서 과제", title: "예배 갱신의 사각지대 교회학교 예배", type: "독서", dept: "all", role: "all", order: 15, minutes: 180, url: "", description: "교회학교 예배에 대한 문제 제기 및 연령별 예배의 대안 제시" },
   ],
   progress: {},
   submissions: [],
-  submissionDriveUrl: "",
+  submissionDriveUrl: "https://drive.google.com/drive/folders/1eKBCV2TbClFEXYCqlnQQo4Feh9QvXfN4?usp=drive_link",
 };
-
 let state = normalizeState(loadState());
 let session = loadSession();
 let currentUserId = session?.role === "trainee" ? session.userId : state.users[0]?.id;
@@ -684,6 +686,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (session?.role === "admin" || state.users.some(u => u.id === session?.userId)) showApp();
   else showLogin();
 });
+
 
 
 
