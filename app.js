@@ -397,8 +397,8 @@ async function syncRemoteSubmissions({ silent = false } = {}) {
     lastSheetSyncAt = Date.now();
     saveState();
     renderAll();
-    if (isAdmin()) switchView("admin");
-    if (!silent) showAdminSaved("구글 시트 제출물을 불러왔습니다.");
+    switchView(isAdmin() ? "admin" : activeView);
+    if (!silent && isAdmin()) showAdminSaved("구글 시트 제출물을 불러왔습니다.");
   } catch (error) {
     if (!silent) alert(error.message || "구글 시트 연결에 실패했습니다.");
   } finally {
@@ -663,7 +663,8 @@ function submissionForm(content, fields, previousSubmission) {
     return `<div class="field"><label>${label}</label><input data-answer="${key}" value="${answers[key] || ""}" /></div>`;
   }).join("");
   const driveGuide = `<div class="drive-submit-guide"><strong>문서 제출 방법</strong><p>작성한 문서를 공유 드라이브에 업로드한 뒤, 업로드한 문서의 공유 링크를 아래 입력칸에 붙여넣어 주세요.</p>${state.submissionDriveUrl ? `<button class="ghost" type="button" onclick="openExternalResource('${escapeHtml(state.submissionDriveUrl)}')">제출 드라이브 열기</button>` : ""}</div>`;
-  return `<form class="form-grid" onsubmit="submitContent(event, '${content.id}')">${driveGuide}${rows}<button class="primary" type="submit">제출하기</button></form>`;
+  const fileUrlField = `<div class="field"><label>드라이브에 업로드한 문서 링크</label><input data-answer="fileUrl" value="${answers.fileUrl || ""}" placeholder="https://drive.google.com/..." /></div>`;
+  return `<form class="form-grid" onsubmit="submitContent(event, '${content.id}')">${driveGuide}${rows}${fileUrlField}<button class="primary" type="submit">제출하기</button></form>`;
 }
 function submitContent(event, contentId) {
   event.preventDefault();
@@ -687,10 +688,11 @@ function submitContent(event, contentId) {
   };
   state.submissions.push(submission);
   setProgress(currentUserId, contentId, { status: "검토 중", submittedAt: submission.createdAt });
+  if (!saveState()) return;
   submitToSheet(submission);
-  saveState();
   $("contentDialog").close();
   renderAll();
+  switchView("submissions");
 }
 async function reviewSubmission(submissionId, status) {
   if (!isAdmin()) return alert("관리자만 검토할 수 있습니다.");
@@ -796,7 +798,8 @@ function switchView(view) {
   $(`${view}View`).classList.add("active-view");
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view));
   $("viewTitle").textContent = { dashboard: "나의 온보딩", courses: "훈련 과정", submissions: "제출함", admin: "관리자" }[view];
-  if (view === "admin" && isAdmin() && !sheetSyncInFlight && Date.now() - lastSheetSyncAt > 5000) {
+  const shouldSync = ["admin", "dashboard", "courses", "submissions"].includes(view);
+  if (shouldSync && !sheetSyncInFlight && Date.now() - lastSheetSyncAt > 5000) {
     syncRemoteSubmissions({ silent: true });
   }
 }
@@ -819,6 +822,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (session?.role === "admin" || state.users.some(u => u.id === session?.userId)) showApp();
   else showLogin();
 });
+
+
 
 
 
