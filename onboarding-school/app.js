@@ -1,6 +1,9 @@
 ﻿const STORAGE_KEY = "onboarding-school-v2";
 const SESSION_KEY = "onboarding-session-v1";
+const DATA_VERSION = "20260630-1605";
 const ADMIN_PASSWORD = "admin123";
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzosPkWStMnym-kJYvKVrlv5_2q5kCFEar1xLFXj_UIB-L6rHShd1PAlIgK7o_x01aw/exec";
+const SHEET_API_TOKEN = "patmos-onboarding-2026";
 const ONBOARDING_PURPOSE = "새롭게 섹션A의 식구가 된 간사가 본격적인 실무에 들어가기 전에 업무를 수행하는데 있어서 필요한 공동체 이해, 직무 수행에 필요한 기초 역량 강화, 담당하게 될 업무 사전준비를 통해 조기 적응력을 가속화시켜 주어진 업무를 정직하고 책임감 있는 자세로 열정을 다해 수행하도록 돕기 위한 과정입니다.";
 
 const seed = {
@@ -15,27 +18,30 @@ const seed = {
     { id: "write", name: "교재 집필" },
   ],
   users: [
-    { id: "u1", name: "김하은", departmentId: "holy", roleId: "write", status: "훈련 중", pin: "1111" },
-    { id: "u2", name: "이서준", departmentId: "yekko", roleId: "edit", status: "훈련 중", pin: "2222" },
+    { id: "u1", name: "나현영", departmentId: "holy", roleId: "edit", status: "신입", pin: "0000" },
   ],
   contents: [
-    { id: "C001", part: "파트 1. 공동체 이해", title: "내규와 생활수칙 확인", type: "문서", dept: "all", role: "all", order: 1, minutes: 30, url: "", description: "구글드라이브에 공유된 내규와 생활수칙 문서를 읽고 확인합니다. 이해되지 않는 부분이 있으면 질문을 남깁니다." },
-    { id: "C002", part: "파트 1. 공동체 이해", title: "파타모스 문화와 홈페이지 분석", type: "리포트", dept: "all", role: "all", order: 2, minutes: 60, url: "https://patmos.co.kr", description: "홈페이지에서 비전, 미션, 핵심 가치, 사역, 구조를 분석하고 개선 아이디어를 작성합니다." },
-    { id: "C003", part: "파트 2-1. 영상 강의", title: "문화와 다중지능", type: "영상", dept: "all", role: "all", order: 3, minutes: 80, url: "", description: "강의를 시청하고 요약문과 업무 적용점을 제출합니다." },
-    { id: "C004", part: "파트 2-1. 영상 강의", title: "2026년 커리큘럼 주제 이해", type: "영상", dept: "all", role: "all", order: 4, minutes: 80, url: "", description: "2026년 커리큘럼의 방향과 주제를 이해하고 요약문을 제출합니다." },
-    { id: "C005", part: "파트 2-1. 영상 강의", title: "2026년 홀리키즈 커리큘럼 강의", type: "영상", dept: "holy", role: "all", order: 5, minutes: 80, url: "", description: "홀리키즈 간사를 위한 부서별 커리큘럼 강의입니다." },
-    { id: "C006", part: "파트 2-1. 영상 강의", title: "2026년 예꼬클럽 커리큘럼 강의", type: "영상", dept: "yekko", role: "all", order: 5, minutes: 80, url: "", description: "예꼬클럽 간사를 위한 부서별 커리큘럼 강의입니다." },
-    { id: "C007", part: "파트 2-1. 영상 강의", title: "예배 시연 분석", type: "영상", dept: "all", role: "all", order: 6, minutes: 50, url: "", description: "예배 시연을 보고 예배 흐름과 개선점을 분석합니다." },
-    { id: "C008", part: "파트 2-2. 독서 과제", title: "지성에서 영성으로", type: "독서", dept: "all", role: "all", order: 7, minutes: 180, url: "", description: "업무 시간 중 읽을 독서 과제입니다. 독후감을 제출합니다." },
-    { id: "C009", part: "파트 2-2. 독서 과제", title: "하이테크 예배", type: "독서", dept: "all", role: "all", order: 8, minutes: 180, url: "", description: "예배와 기술의 관계를 읽고 사역 적용점을 정리합니다." },
-    { id: "C010", part: "파트 3. 역할별 훈련", title: "편집 기본 원칙", type: "실습", dept: "all", role: "edit", order: 9, minutes: 60, url: "", description: "교정, 교열, 문장 정리의 기본 원칙을 실습합니다." },
-    { id: "C011", part: "파트 3. 역할별 훈련", title: "교재 원고 작성 실습", type: "실습", dept: "all", role: "write", order: 9, minutes: 60, url: "", description: "공과 흐름에 맞춰 교사용 원고 초안을 작성합니다." },
+    { id: "C001", part: "파트 1. 공동체 이해", title: "내규와 생활수칙 확인", type: "문서", dept: "all", role: "all", order: 1, minutes: 30, url: "https://drive.google.com/drive/folders/1IBzMMxVg9wDus_ll5mewSa4vddbElHms?usp=drive_link", description: "구글드라이브에 공유된 내규와 생활수칙 문서를 읽고 확인합니다. 이해되지 않는 부분이 있으면 질문을 남깁니다." },
+    { id: "C002", part: "파트 1. 공동체 이해", title: "팻머스 홈페이지 분석", type: "리포트", dept: "all", role: "all", order: 2, minutes: 60, url: "https://www.ipatmos.co.kr/", description: "홈페이지에서 비전, 미션, 핵심 가치, 사역, 구조를 분석하고 개선 아이디어를 작성합니다." },
+    { id: "C003", part: "파트 2-1. 영상 강의", title: "문화와 다중지능", type: "영상", dept: "all", role: "all", order: 3, minutes: 80, url: "https://youtu.be/q-Jt3iEsAAg?si=gGV4zB2VPZS9HKw8\nhttps://youtu.be/R8x8H3wL4SQ?si=slu6znXOPpaHssgh", description: "강의를 시청하고 요약문과 업무 적용점을 제출합니다." },
+    { id: "C004", part: "파트 2-1. 영상 강의", title: "2026년 커리큘럼 주제 해설", type: "영상", dept: "all", role: "all", order: 4, minutes: 20, url: "https://youtu.be/aYhICtXmcRg?si=ctfqZjvDmeDJ2tZB", description: "2026년 커리큘럼의 방향과 주제를 이해하고 요약문을 제출합니다." },
+    { id: "C005", part: "파트 2-1. 영상 강의", title: "2026년 홀리키즈 커리큘럼 강의", type: "영상", dept: "holy", role: "all", order: 5, minutes: 20, url: "https://vimeo.com/1135642764/00dd514323", description: "홀리키즈 간사를 위한 부서별 커리큘럼 강의입니다." },
+    { id: "C006", part: "파트 2-1. 영상 강의", title: "홀리키즈 예배 시연", type: "영상", dept: "holy", role: "all", order: 6, minutes: 50, url: "https://youtu.be/NAwf9LOeQHY", description: "예배 시연을 보고 예배 흐름과 개선점을 분석합니다." },
+    { id: "C007", part: "파트 2-1. 영상 강의", title: "홀리키즈 예배 강의", type: "영상", dept: "holy", role: "all", order: 7, minutes: 30, url: "https://vimeo.com/1135642375/0d9767e9d3", description: "홀리키즈 예배의 순서의 구조를 이해합니다." },
+    { id: "C008", part: "파트 2-1. 영상 강의", title: "홀리키즈 공과 강의", type: "영상", dept: "holy", role: "all", order: 8, minutes: 30, url: "https://vimeo.com/1135641979/794a00f42f", description: "홀리키즈 공과의 순서의 구조를 이해합니다." },
+    { id: "C009", part: "파트 2-1. 영상 강의", title: "2026년 예꼬클럽 커리큘럼 강의", type: "영상", dept: "yekko", role: "all", order: 9, minutes: 20, url: "https://vimeo.com/1135626198/04e827f827", description: "예꼬클럽 간사를 위한 부서별 커리큘럼 강의입니다." },
+    { id: "C010", part: "파트 2-1. 영상 강의", title: "예꼬클럽 예배 강의", type: "영상", dept: "yekko", role: "all", order: 10, minutes: 40, url: "https://vimeo.com/1135627565/2cafe4ba52", description: "예꼬클럽 간사를 위한 예배 강의입니다." },
+    { id: "C011", part: "파트 2-1. 영상 강의", title: "예꼬클럽 공과 강의", type: "영상", dept: "yekko", role: "all", order: 11, minutes: 30, url: "https://vimeo.com/1135626198/04e827f827", description: "예꼬클럽 간사를 위한 아이라이크 공과 강의입니다." },
+    { id: "C012", part: "파트 2-2. 독서 과제", title: "지력혁명", type: "독서", dept: "all", role: "all", order: 12, minutes: 179, url: "", description: "다중지능 이해를 돕는 입문서입니다. (독서 과제는 업무 외 시간에 진행합니다.)" },
+    { id: "C013", part: "파트 2-2. 독서 과제", title: "하이테크 예배", type: "독서", dept: "all", role: "all", order: 13, minutes: 180, url: "", description: "예배와 기술의 관계를 읽고 사역 적용점을 정리합니다. (독서 과제는 업무 외 시간에 진행합니다.)" },
+    { id: "C014", part: "파트 2-2. 독서 과제", title: "빨려드는 어린이 설교", type: "독서", dept: "all", role: "all", order: 14, minutes: 180, url: "", description: "설교에서의 오브젝트 레슨의 이해를 돕습니다." },
+    { id: "C015", part: "파트 2-2. 독서 과제", title: "예배 갱신의 사각지대 교회학교 예배", type: "독서", dept: "all", role: "all", order: 15, minutes: 180, url: "", description: "교회학교 예배에 대한 문제 제기 및 연령별 예배의 대안 제시" },
   ],
   progress: {},
   submissions: [],
-  submissionDriveUrl: "",
+  submissionDriveUrl: "https://drive.google.com/drive/folders/1eKBCV2TbClFEXYCqlnQQo4Feh9QvXfN4?usp=drive_link",
+  dataVersion: DATA_VERSION,
 };
-
 let state = normalizeState(loadState());
 let session = loadSession();
 let currentUserId = session?.role === "trainee" ? session.userId : state.users[0]?.id;
@@ -44,7 +50,10 @@ let activeView = "dashboard";
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return structuredClone(seed);
-  try { return { ...structuredClone(seed), ...JSON.parse(saved) }; }
+  try {
+    const parsed = JSON.parse(saved);
+    return { ...structuredClone(seed), ...parsed };
+  }
   catch { return structuredClone(seed); }
 }
 function normalizeState(nextState) {
@@ -81,6 +90,7 @@ function normalizeState(nextState) {
   nextState.progress ||= {};
   nextState.submissions ||= [];
   nextState.submissionDriveUrl = nextState.submissionDriveUrl || "";
+  nextState.dataVersion = DATA_VERSION;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
   return nextState;
 }
@@ -311,6 +321,161 @@ function nextContentId() {
   }
   return id;
 }
+function sheetRequestUrl(params = {}) {
+  const url = new URL(SHEET_API_URL);
+  url.searchParams.set("token", SHEET_API_TOKEN);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value ?? ""));
+  return url.toString();
+}
+function sheetJsonp(params = {}) {
+  return new Promise((resolve, reject) => {
+    const callback = `sheetCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Google Sheet 응답 시간이 초과되었습니다."));
+    }, 12000);
+    function cleanup() {
+      window.clearTimeout(timeout);
+      delete window[callback];
+      script.remove();
+    }
+    window[callback] = data => {
+      cleanup();
+      resolve(data);
+    };
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Google Sheet에 연결하지 못했습니다."));
+    };
+    script.src = sheetRequestUrl({ ...params, callback });
+    document.body.appendChild(script);
+  });
+}
+function remoteSubmissionToLocal(item) {
+  const user = state.users.find(u => u.id === item.userId || u.name === item.userName);
+  const content = state.contents.find(c => c.id === item.contentId || c.title === item.contentTitle);
+  return {
+    id: item.id,
+    userId: item.userId || user?.id || "",
+    userName: item.userName || user?.name || "",
+    department: item.department || user?.departmentId || "",
+    role: item.role || user?.roleId || "",
+    contentId: item.contentId || content?.id || "",
+    contentTitle: item.contentTitle || content?.title || "",
+    answers: item.answers || {},
+    status: item.status || "검토 중",
+    feedback: item.feedback || "",
+    createdAt: item.createdAt || new Date().toISOString(),
+    reviewedAt: item.reviewedAt || "",
+  };
+}
+function refreshProgressFromSubmissions() {
+  state.submissions.forEach(s => {
+    if (!s.userId || !s.contentId) return;
+    const key = `${s.userId}:${s.contentId}`;
+    const current = state.progress[key] || { status: "미시작" };
+    state.progress[key] = {
+      ...current,
+      status: s.status || current.status,
+      submittedAt: s.createdAt || current.submittedAt,
+      completedAt: s.status === "통과" ? (s.reviewedAt || s.createdAt || current.completedAt) : undefined,
+    };
+  });
+}
+let sheetSyncInFlight = false;
+let lastSheetSyncAt = 0;
+async function syncRemoteSubmissions({ silent = false } = {}) {
+  if (sheetSyncInFlight) return;
+  sheetSyncInFlight = true;
+  try {
+    const result = await sheetJsonp({ action: "list" });
+    if (!result?.ok) throw new Error(result?.error || "제출물 목록을 불러오지 못했습니다.");
+    state.submissions = (result.submissions || []).map(remoteSubmissionToLocal);
+    refreshProgressFromSubmissions();
+    lastSheetSyncAt = Date.now();
+    saveState();
+    renderAll();
+    switchView(isAdmin() ? "admin" : activeView);
+    if (!silent && isAdmin()) showAdminSaved("구글 시트 제출물을 불러왔습니다.");
+  } catch (error) {
+    if (!silent) alert(error.message || "구글 시트 연결에 실패했습니다.");
+  } finally {
+    sheetSyncInFlight = false;
+  }
+}
+function submitToSheet(submission) {
+  if (!SHEET_API_URL) return;
+  fetch(SHEET_API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "submit", token: SHEET_API_TOKEN, submission }),
+  }).catch(() => {});
+}
+async function reviewSubmissionOnSheet(submissionId, status, feedback) {
+  if (!SHEET_API_URL) return;
+  await sheetJsonp({ action: "review", id: submissionId, status, feedback });
+}
+async function deleteSubmissionOnSheet(submissionId) {
+  if (!SHEET_API_URL) return;
+  await sheetJsonp({ action: "delete", id: submissionId });
+}
+function remoteUserToLocal(item, index = 0) {
+  const localUser = state.users.find(u => u.id === item.id || u.name === item.name);
+  return {
+    id: item.id || `u_remote_${Date.now()}_${index}`,
+    name: item.name || "이름 없음",
+    departmentId: item.departmentId || item.department || "holy",
+    roleId: item.roleId || item.role || "edit",
+    status: item.status || "훈련 중",
+    pin: localUser?.pin || "0000",
+  };
+}
+function usersForSheet() {
+  return state.users.map((u, index) => ({
+    id: u.id || `u_${index + 1}`,
+    name: u.name || "",
+    departmentId: u.departmentId || "holy",
+    roleId: u.roleId || "edit",
+    status: u.status || "훈련 중",
+  }));
+}
+function saveUsersToSheet({ silent = true } = {}) {
+  if (!SHEET_API_URL) return;
+  fetch(SHEET_API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "users-save", token: SHEET_API_TOKEN, users: usersForSheet() }),
+  }).catch(() => {
+    if (!silent) alert("간사 목록을 Google Sheet에 저장하지 못했습니다.");
+  });
+}
+let userSyncInFlight = false;
+async function syncRemoteUsers({ silent = false, rerender = true } = {}) {
+  if (!SHEET_API_URL || userSyncInFlight) return;
+  userSyncInFlight = true;
+  try {
+    const result = await sheetJsonp({ action: "users-list" });
+    if (!result?.ok) throw new Error(result?.error || "간사 목록을 불러오지 못했습니다.");
+    const remoteUsers = Array.isArray(result.users) ? result.users.map(remoteUserToLocal).filter(u => u.name.trim()) : [];
+    if (remoteUsers.length) {
+      state.users = remoteUsers;
+      if (!state.users.some(u => u.id === currentUserId)) currentUserId = state.users[0]?.id;
+      saveState();
+      renderLoginOptions();
+      if (rerender && session) renderAll();
+    } else {
+      saveUsersToSheet({ silent: true });
+    }
+    if (!silent && isAdmin()) showAdminSaved("간사 목록을 Google Sheet에서 불러왔습니다.");
+  } catch (error) {
+    if (!silent) alert(error.message || "간사 목록 Google Sheet 연결에 실패했습니다.");
+  } finally {
+    userSyncInFlight = false;
+  }
+}
 function answerLabel(key) {
   return {
     confirmed: "완료 여부",
@@ -354,13 +519,13 @@ function renderSubmissionAnswers(submission) {
 function renderAdmin() {
   if (!isAdmin()) { $("adminView").innerHTML = `<div class="card"><h3>접근할 수 없습니다.</h3><p class="muted">관리자 계정으로 로그인해야 합니다.</p></div>`; return; }
   const userRows = state.users.map(u => `<tr class="user-edit-row" data-user-id="${u.id}"><td><input data-user-edit="name" value="${escapeHtml(u.name)}" /></td><td><select data-user-edit="departmentId">${optionTags(state.departments.filter(d => d.id !== "all"), u.departmentId)}</select></td><td><select data-user-edit="roleId">${optionTags(state.roles.filter(r => r.id !== "all"), u.roleId)}</select></td><td><input data-user-edit="status" value="${escapeHtml(u.status || "훈련 중")}" /></td><td><input data-user-edit="pin" value="${escapeHtml(u.pin || "0000")}" /></td><td class="row-actions"><button class="success-btn" onclick="updateUser('${u.id}')">저장</button><button class="danger-btn" onclick="deleteUser('${u.id}')">삭제</button></td></tr>`).join("");  const statsRows = state.users.map(u => { const st = getStats(u); return `<tr><td><strong>${u.name}</strong></td><td>${deptName(u.departmentId)}</td><td>${roleName(u.roleId)}</td><td>${st.completed}/${st.total}</td><td><div class="progress-bar"><div class="progress-fill" style="width:${st.percent}%"></div></div><span class="muted">${st.percent}%</span></td></tr>`; }).join("");
-  const submissionRows = state.submissions.slice().sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt)).map(s => { const u = state.users.find(x => x.id === s.userId); const c = state.contents.find(x => x.id === s.contentId); return `<tr><td><strong>${u?.name}</strong><br><span class="muted">${deptName(u?.departmentId)} · ${roleName(u?.roleId)}</span></td><td>${c?.title || s.contentId}<br><span class="muted">${formatDate(s.createdAt)}</span></td><td>${renderSubmissionAnswers(s)}</td><td>${statusBadge(s.status)}</td><td><button class="success-btn" onclick="reviewSubmission('${s.id}', '통과')">통과</button> <button class="ghost" onclick="reviewSubmission('${s.id}', '보완 요청')">보완</button> <button class="danger-btn" onclick="reviewSubmission('${s.id}', '반려')">반려</button> <button class="danger-btn" onclick="deleteSubmission('${s.id}')">삭제</button></td></tr>`; }).join("");
+  const submissionRows = state.submissions.slice().sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt)).map(s => { const u = state.users.find(x => x.id === s.userId); const c = state.contents.find(x => x.id === s.contentId); const userName = u?.name || s.userName || "-"; const department = u?.departmentId || s.department || ""; const role = u?.roleId || s.role || ""; return `<tr><td><strong>${escapeHtml(userName)}</strong><br><span class="muted">${deptName(department)} · ${roleName(role)}</span></td><td>${escapeHtml(c?.title || s.contentTitle || s.contentId)}<br><span class="muted">${formatDate(s.createdAt)}</span></td><td>${renderSubmissionAnswers(s)}</td><td>${statusBadge(s.status)}</td><td><button class="success-btn" onclick="reviewSubmission('${s.id}', '통과')">통과</button> <button class="ghost" onclick="reviewSubmission('${s.id}', '보완 요청')">보완</button> <button class="danger-btn" onclick="reviewSubmission('${s.id}', '반려')">반려</button> <button class="danger-btn" onclick="deleteSubmission('${s.id}')">삭제</button></td></tr>`; }).join("");
   const cloneOptions = state.contents.map((c, contentIndex) => ({ c, contentIndex })).sort((a, b) => a.c.order - b.c.order || a.c.title.localeCompare(b.c.title, "ko")).map(({ c, contentIndex }) => `<option value="${contentIndex}">${c.order}. ${escapeHtml(c.title)}</option>`).join("");
   const contentRows = state.contents.map((c, contentIndex) => ({ c, contentIndex })).sort((a, b) => a.c.order - b.c.order || a.c.title.localeCompare(b.c.title, "ko")).map(({ c, contentIndex }, index) => `<tr class="content-edit-row" data-content-index="${contentIndex}" data-content-id="${escapeHtml(c.id)}"><td><div class="order-drag-cell"><span class="order-chip">${index + 1}</span><button class="drag-handle" type="button" onpointerdown="contentPointerStart(event)" title="드래그해서 순서 변경" aria-label="드래그해서 순서 변경">↕</button></div></td><td><input data-edit="part" value="${escapeHtml(c.part)}" /></td><td><input data-edit="title" value="${escapeHtml(c.title)}" /></td><td><select data-edit="type">${typeOptions(c.type)}</select></td><td><select data-edit="dept">${optionTags(state.departments, c.dept)}</select></td><td><select data-edit="role">${optionTags(state.roles, c.role)}</select></td><td><input data-edit="minutes" type="number" min="0" value="${c.minutes || 0}" /></td><td><textarea class="link-list-input" data-edit="url" placeholder="링크를 한 줄에 하나씩 입력">${escapeHtml(c.url || "")}</textarea></td><td><textarea data-edit="description">${escapeHtml(c.description || "")}</textarea></td><td class="row-actions"><button class="success-btn" onclick="updateContent(this)">저장</button><button class="danger-btn" onclick="deleteContent(this)">삭제</button></td></tr>`).join("");
   const reviewDriveButton = state.submissionDriveUrl ? `<button class="ghost" type="button" onclick="openExternalResource('${escapeHtml(state.submissionDriveUrl)}')">제출 드라이브 열기</button>` : "";
-  $("adminView").innerHTML = `<div class="grid cols-2"><div class="card"><h3>제출 드라이브 설정</h3><div class="form-grid"><div class="field"><label>공유 드라이브 업로드 폴더 링크</label><input id="submissionDriveUrl" value="${escapeHtml(state.submissionDriveUrl || "")}" placeholder="https://drive.google.com/drive/folders/..." /></div><p class="muted">신입간사는 이 폴더에 문서를 업로드한 뒤, 공유 링크를 제출합니다.</p><button class="primary" type="button" onclick="saveSubmissionDriveUrl()">제출 드라이브 저장</button></div></div><div class="card"><h3>신입 간사 등록</h3><div class="form-grid"><div class="field"><label>이름</label><input id="newUserName" placeholder="홍길동" /></div><div class="field"><label>초기 비밀번호</label><input id="newUserPin" type="password" placeholder="숫자 4자리" /></div><div class="form-grid cols-2"><div class="field"><label>부서</label><select id="newUserDept">${state.departments.filter(d=>d.id!=="all").map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>역할</label><select id="newUserRole">${state.roles.filter(r=>r.id!=="all").map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><button class="primary" onclick="addUser()">간사 추가</button></div></div><div class="card"><h3>콘텐츠 추가</h3><div class="form-grid"><div class="field"><label>기존 과정 불러오기</label><div class="inline-action"><select id="cloneContentSource">${cloneOptions}</select><button class="ghost" type="button" onclick="fillContentFromTemplate()">복사</button></div></div><div class="field"><label>제목</label><input id="newContentTitle" placeholder="새 편집 기본 원칙" /></div><div class="form-grid cols-2"><div class="field"><label>파트</label><input id="newContentPart" value="파트 3. 역할별 훈련" /></div><div class="field"><label>유형</label><select id="newContentType">${typeOptions("문서")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>대상 부서</label><select id="newContentDept">${state.departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>대상 역할</label><select id="newContentRole">${state.roles.map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>예상 시간(분)</label><input id="newContentMinutes" type="number" min="0" value="30" /></div><div class="field"><label>링크</label><textarea id="newContentUrl" placeholder="링크를 한 줄에 하나씩 입력"></textarea></div></div><div class="field"><label>설명</label><textarea id="newContentDesc" placeholder="신입 간사에게 보일 안내문"></textarea></div><button class="primary" onclick="addContent()">콘텐츠 추가</button></div></div></div><p id="adminSaveNotice" class="save-notice" aria-live="polite"></p><div class="section-title"><h3>신입 간사 관리</h3><button class="ghost" type="button" onclick="saveAllUsers()">간사 전체 저장</button><span class="badge">${state.users.length}명</span></div><div class="card table-wrap"><table class="user-admin-table"><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>상태</th><th>비밀번호</th><th>관리</th></tr></thead><tbody>${userRows}</tbody></table></div><div class="section-title"><h3>훈련 과정 관리</h3><button class="ghost" type="button" onclick="saveAllContents()">과정 전체 저장</button><span class="badge">${state.contents.length}개 과정</span></div><div class="card table-wrap"><table class="content-admin-table"><thead><tr><th>순서 이동</th><th>파트</th><th>제목</th><th>유형</th><th>부서</th><th>역할</th><th>분</th><th>링크</th><th>설명</th><th>관리</th></tr></thead><tbody id="contentAdminBody">${contentRows}</tbody></table></div><div class="section-title"><h3>간사별 진행률</h3></div><div class="card table-wrap"><table><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>완료</th><th>진행률</th></tr></thead><tbody>${statsRows}</tbody></table></div><div class="section-title"><h3>제출물 검토</h3>${reviewDriveButton}</div><div class="card table-wrap"><table><thead><tr><th>제출자</th><th>과제</th><th>제출 내용</th><th>상태</th><th>검토</th></tr></thead><tbody>${submissionRows || `<tr><td colspan="5" class="empty">검토할 제출물이 없습니다.</td></tr>`}</tbody></table></div>`;
+  $("adminView").innerHTML = `<div class="grid cols-2"><div class="card"><h3>제출 드라이브 설정</h3><div class="form-grid"><div class="field"><label>공유 드라이브 업로드 폴더 링크</label><input id="submissionDriveUrl" value="${escapeHtml(state.submissionDriveUrl || "")}" placeholder="https://drive.google.com/drive/folders/..." /></div><p class="muted">신입간사는 이 폴더에 문서를 업로드한 뒤, 공유 링크를 제출합니다.</p><button class="primary" type="button" onclick="saveSubmissionDriveUrl()">제출 드라이브 저장</button></div></div><div class="card"><h3>신입 간사 등록</h3><div class="form-grid"><div class="field"><label>이름</label><input id="newUserName" placeholder="홍길동" /></div><div class="field"><label>초기 비밀번호</label><input id="newUserPin" type="password" placeholder="숫자 4자리" /></div><div class="form-grid cols-2"><div class="field"><label>부서</label><select id="newUserDept">${state.departments.filter(d=>d.id!=="all").map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>역할</label><select id="newUserRole">${state.roles.filter(r=>r.id!=="all").map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><button class="primary" onclick="addUser()">간사 추가</button></div></div><div class="card"><h3>콘텐츠 추가</h3><div class="form-grid"><div class="field"><label>기존 과정 불러오기</label><div class="inline-action"><select id="cloneContentSource">${cloneOptions}</select><button class="ghost" type="button" onclick="fillContentFromTemplate()">복사</button></div></div><div class="field"><label>제목</label><input id="newContentTitle" placeholder="새 편집 기본 원칙" /></div><div class="form-grid cols-2"><div class="field"><label>파트</label><input id="newContentPart" value="파트 3. 역할별 훈련" /></div><div class="field"><label>유형</label><select id="newContentType">${typeOptions("문서")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>대상 부서</label><select id="newContentDept">${state.departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>대상 역할</label><select id="newContentRole">${state.roles.map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>예상 시간(분)</label><input id="newContentMinutes" type="number" min="0" value="30" /></div><div class="field"><label>링크</label><textarea id="newContentUrl" placeholder="링크를 한 줄에 하나씩 입력"></textarea></div></div><div class="field"><label>설명</label><textarea id="newContentDesc" placeholder="신입 간사에게 보일 안내문"></textarea></div><button class="primary" onclick="addContent()">콘텐츠 추가</button></div></div></div><p id="adminSaveNotice" class="save-notice" aria-live="polite"></p><div class="section-title"><h3>신입 간사 관리</h3><button class="ghost" type="button" onclick="saveAllUsers()">간사 전체 저장</button><button class="ghost" type="button" onclick="syncRemoteUsers()">시트 새로고침</button><span class="badge">${state.users.length}명</span></div><div class="card table-wrap"><table class="user-admin-table"><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>상태</th><th>비밀번호</th><th>관리</th></tr></thead><tbody>${userRows}</tbody></table></div><div class="section-title"><h3>훈련 과정 관리</h3><button class="ghost" type="button" onclick="saveAllContents()">과정 전체 저장</button><span class="badge">${state.contents.length}개 과정</span></div><div class="card table-wrap"><table class="content-admin-table"><thead><tr><th>순서 이동</th><th>파트</th><th>제목</th><th>유형</th><th>부서</th><th>역할</th><th>분</th><th>링크</th><th>설명</th><th>관리</th></tr></thead><tbody id="contentAdminBody">${contentRows}</tbody></table></div><div class="section-title"><h3>간사별 진행률</h3></div><div class="card table-wrap"><table><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>완료</th><th>진행률</th></tr></thead><tbody>${statsRows}</tbody></table></div><div class="section-title"><h3>제출물 검토</h3><div class="row-actions">${reviewDriveButton}<button class="ghost" type="button" onclick="syncRemoteSubmissions()">구글 시트 새로고침</button></div></div><div class="card table-wrap"><table><thead><tr><th>제출자</th><th>과제</th><th>제출 내용</th><th>상태</th><th>검토</th></tr></thead><tbody>${submissionRows || `<tr><td colspan="5" class="empty">검토할 제출물이 없습니다.</td></tr>`}</tbody></table></div>`;
 }
-function updateUser(userId) {
+async function updateUser(userId) {
   if (!isAdmin()) return alert("관리자만 수정할 수 있습니다.");
   const row = document.querySelector(`[data-user-id="${userId}"]`);
   const target = state.users.find(u => u.id === userId);
@@ -374,12 +539,13 @@ function updateUser(userId) {
   target.status = value("status") || "훈련 중";
   target.pin = value("pin") || "0000";
   if (!saveState()) return;
+  saveUsersToSheet({ silent: true });
   renderLoginOptions();
   renderAll();
   switchView("admin");
   showAdminSaved("간사 정보가 저장되었습니다.");
 }
-function saveAllUsers() {
+async function saveAllUsers() {
   if (!isAdmin()) return alert("관리자만 수정할 수 있습니다.");
   document.querySelectorAll(".user-edit-row").forEach(row => {
     const userId = row.dataset.userId;
@@ -394,25 +560,28 @@ function saveAllUsers() {
     target.pin = value("pin") || "0000";
   });
   if (!saveState()) return;
+  saveUsersToSheet({ silent: true });
   renderLoginOptions();
   renderAll();
   switchView("admin");
-  showAdminSaved("간사 변경사항이 모두 저장되었습니다.");
+  showAdminSaved("간사 정보들이 모두 저장되었습니다.");
 }
-function deleteUser(userId) {
+async function deleteUser(userId) {
   if (!isAdmin()) return alert("관리자만 삭제할 수 있습니다.");
   const target = state.users.find(u => u.id === userId);
   if (!target) return;
   if (state.users.length <= 1) return alert("최소 1명의 간사는 남겨두어야 합니다.");
-  if (!confirm(`'${target.name}' 간사를 삭제할까요? 관련 제출물과 진행 기록도 함께 정리됩니다.`)) return;
+  if (!confirm(`'${target.name}' 간사를 삭제할까요? 관련 제출물과 진행 기록도 함께 삭제됩니다.`)) return;
   state.users = state.users.filter(u => u.id !== userId);
   state.submissions = state.submissions.filter(s => s.userId !== userId);
   Object.keys(state.progress).forEach(key => { if (key.startsWith(`${userId}:`)) delete state.progress[key]; });
   if (currentUserId === userId) currentUserId = state.users[0]?.id;
   saveState();
+  saveUsersToSheet({ silent: true });
   renderLoginOptions();
   renderAll();
   switchView("admin");
+  showAdminSaved("간사가 삭제되었습니다.");
 }
 let pointerContentDrag = null;
 function contentPointerStart(event) {
@@ -552,21 +721,38 @@ function submissionForm(content, fields, previousSubmission) {
     return `<div class="field"><label>${label}</label><input data-answer="${key}" value="${answers[key] || ""}" /></div>`;
   }).join("");
   const driveGuide = `<div class="drive-submit-guide"><strong>문서 제출 방법</strong><p>작성한 문서를 공유 드라이브에 업로드한 뒤, 업로드한 문서의 공유 링크를 아래 입력칸에 붙여넣어 주세요.</p>${state.submissionDriveUrl ? `<button class="ghost" type="button" onclick="openExternalResource('${escapeHtml(state.submissionDriveUrl)}')">제출 드라이브 열기</button>` : ""}</div>`;
-  return `<form class="form-grid" onsubmit="submitContent(event, '${content.id}')">${driveGuide}${rows}<button class="primary" type="submit">제출하기</button></form>`;
+  const fileUrlField = `<div class="field"><label>드라이브에 업로드한 문서 링크</label><input data-answer="fileUrl" value="${answers.fileUrl || ""}" placeholder="https://drive.google.com/..." /></div>`;
+  return `<form class="form-grid" onsubmit="submitContent(event, '${content.id}')">${driveGuide}${rows}${fileUrlField}<button class="primary" type="submit">제출하기</button></form>`;
 }
 function submitContent(event, contentId) {
   event.preventDefault();
   if (isAdmin()) return;
   const answers = {};
   event.target.querySelectorAll("[data-answer]").forEach(el => { answers[el.dataset.answer] = el.type === "checkbox" ? el.checked : el.value.trim(); });
-  const submission = { id: `s_${Date.now()}`, userId: currentUserId, contentId, answers, status: "검토 중", feedback: "", createdAt: new Date().toISOString() };
+  const user = currentUser();
+  const content = state.contents.find(c => c.id === contentId);
+  const submission = {
+    id: `s_${Date.now()}`,
+    userId: currentUserId,
+    userName: user?.name || "",
+    department: user?.departmentId || "",
+    role: user?.roleId || "",
+    contentId,
+    contentTitle: content?.title || contentId,
+    answers,
+    status: "검토 중",
+    feedback: "",
+    createdAt: new Date().toISOString(),
+  };
   state.submissions.push(submission);
   setProgress(currentUserId, contentId, { status: "검토 중", submittedAt: submission.createdAt });
-  saveState();
+  if (!saveState()) return;
+  submitToSheet(submission);
   $("contentDialog").close();
   renderAll();
+  switchView("submissions");
 }
-function reviewSubmission(submissionId, status) {
+async function reviewSubmission(submissionId, status) {
   if (!isAdmin()) return alert("관리자만 검토할 수 있습니다.");
   const s = state.submissions.find(x => x.id === submissionId);
   if (!s) return alert("제출물을 찾을 수 없습니다.");
@@ -580,17 +766,23 @@ function reviewSubmission(submissionId, status) {
   s.reviewedAt = new Date().toISOString();
   setProgress(s.userId, s.contentId, { status, completedAt: status === "통과" ? new Date().toISOString() : undefined });
   saveState();
+  try { await reviewSubmissionOnSheet(submissionId, status, s.feedback); }
+  catch (error) { alert(error.message || "구글 시트 검토 상태 저장에 실패했습니다."); }
   renderAll();
   switchView("admin");
   showAdminSaved(`제출물이 '${status}' 상태로 변경되었습니다.`);
 }
-function deleteSubmission(submissionId) {
+async function deleteSubmission(submissionId) {
   if (!isAdmin()) return alert("관리자만 삭제할 수 있습니다.");
   const submission = state.submissions.find(x => x.id === submissionId);
   if (!submission) return alert("제출물을 찾을 수 없습니다.");
   const user = state.users.find(u => u.id === submission.userId);
   const content = state.contents.find(c => c.id === submission.contentId);
-  if (!confirm(`'${user?.name || "피훈련자"}'의 '${content?.title || submission.contentId}' 제출물을 삭제할까요?`)) return;
+  const userName = user?.name || submission.userName || "피훈련자";
+  const contentTitle = content?.title || submission.contentTitle || submission.contentId;
+  if (!confirm(`'${userName}'의 '${contentTitle}' 제출물을 삭제할까요?`)) return;
+  try { await deleteSubmissionOnSheet(submissionId); }
+  catch (error) { return alert(error.message || "구글 시트 제출물 삭제에 실패했습니다."); }
   state.submissions = state.submissions.filter(item => item.id !== submissionId);
   const remaining = state.submissions
     .filter(item => item.userId === submission.userId && item.contentId === submission.contentId)
@@ -611,7 +803,7 @@ function deleteSubmission(submissionId) {
   switchView("admin");
   showAdminSaved("제출물이 삭제되었습니다.");
 }
-function addUser() {
+async function addUser() {
   if (!isAdmin()) return alert("관리자만 등록할 수 있습니다.");
   const name = $("newUserName").value.trim();
   const pin = $("newUserPin").value.trim() || "0000";
@@ -619,6 +811,7 @@ function addUser() {
   const newUser = { id: `u_${Date.now()}`, name, departmentId: $("newUserDept").value, roleId: $("newUserRole").value, status: "훈련 중", pin };
   state.users.push(newUser);
   if (!saveState()) return;
+  saveUsersToSheet({ silent: true });
   renderLoginOptions();
   renderAll();
   switchView("admin");
@@ -664,10 +857,15 @@ function switchView(view) {
   $(`${view}View`).classList.add("active-view");
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view));
   $("viewTitle").textContent = { dashboard: "나의 온보딩", courses: "훈련 과정", submissions: "제출함", admin: "관리자" }[view];
+  const shouldSync = ["admin", "dashboard", "courses", "submissions"].includes(view);
+  if (shouldSync && !sheetSyncInFlight && Date.now() - lastSheetSyncAt > 5000) {
+    syncRemoteSubmissions({ silent: true });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   renderLoginOptions();
+  syncRemoteUsers({ silent: true });
   $("loginForm").addEventListener("submit", handleLogin);
   document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("click", () => switchView(btn.dataset.view)));
   $("closeDialog").addEventListener("click", () => $("contentDialog").close());
@@ -684,6 +882,18 @@ document.addEventListener("DOMContentLoaded", () => {
   if (session?.role === "admin" || state.users.some(u => u.id === session?.userId)) showApp();
   else showLogin();
 });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
