@@ -429,7 +429,7 @@ function remoteUserToLocal(item, index = 0) {
     departmentId: item.departmentId || item.department || "holy",
     roleId: item.roleId || item.role || "edit",
     status: item.status || "훈련 중",
-    pin: localUser?.pin || "0000",
+    pin: item.pin || localUser?.pin || "0000",
   };
 }
 function usersForSheet() {
@@ -439,6 +439,7 @@ function usersForSheet() {
     departmentId: u.departmentId || "holy",
     roleId: u.roleId || "edit",
     status: u.status || "훈련 중",
+    pin: u.pin || "0000",
   }));
 }
 function saveUsersToSheet({ silent = true } = {}) {

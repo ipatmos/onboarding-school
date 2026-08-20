@@ -1,13 +1,14 @@
 ﻿/**
  * Add these helpers to the existing Onboarding School Google Apps Script.
- * They store trainee users without PIN/password values.
+ * They store trainee users including PIN values.
+ * Keep this spreadsheet shared only with trusted administrators.
  *
  * Expected web app actions:
  * - GET  action=users-list
- * - POST action=users-save, users=[{ id, name, departmentId, roleId, status }]
+ * - POST action=users-save, users=[{ id, name, departmentId, roleId, status, pin }]
  */
 const USERS_SHEET_NAME = 'Users';
-const USER_HEADERS = ['id', 'name', 'departmentId', 'roleId', 'status', 'updatedAt'];
+const USER_HEADERS = ['id', 'name', 'departmentId', 'roleId', 'status', 'pin', 'updatedAt'];
 
 function getUsersSheet_() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -31,7 +32,8 @@ function listUsers_() {
       departmentId: String(row[2] || ''),
       roleId: String(row[3] || ''),
       status: String(row[4] || ''),
-      updatedAt: row[5] ? new Date(row[5]).toISOString() : '',
+      pin: String(row[5] || ''),
+      updatedAt: row[6] ? new Date(row[6]).toISOString() : '',
     }));
 }
 
@@ -46,6 +48,7 @@ function saveUsers_(users) {
       String(user.departmentId || user.department || ''),
       String(user.roleId || user.role || ''),
       String(user.status || '훈련 중'),
+      String(user.pin || '0000'),
       now,
     ]);
   if (sheet.getLastRow() > 1) {
