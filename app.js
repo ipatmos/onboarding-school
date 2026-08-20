@@ -52,8 +52,7 @@ function loadState() {
   if (!saved) return structuredClone(seed);
   try {
     const parsed = JSON.parse(saved);
-    if (parsed.dataVersion !== DATA_VERSION) return structuredClone(seed);
-    return { ...structuredClone(seed), ...parsed };
+        return { ...structuredClone(seed), ...parsed };
   }
   catch { return structuredClone(seed); }
 }
