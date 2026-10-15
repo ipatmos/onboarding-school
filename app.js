@@ -11,11 +11,13 @@ const seed = {
     { id: "all", name: "전체" },
     { id: "yekko", name: "예꼬클럽" },
     { id: "holy", name: "홀리키즈" },
+    { id: "design", name: "디자인" },
   ],
   roles: [
     { id: "all", name: "전체" },
     { id: "edit", name: "편집" },
     { id: "write", name: "교재 집필" },
+    { id: "design", name: "디자인" },
   ],
   users: [
     { id: "u1", name: "나현영", departmentId: "holy", roleId: "edit", status: "신입", pin: "0000" },
@@ -57,8 +59,16 @@ function loadState() {
   catch { return structuredClone(seed); }
 }
 function normalizeState(nextState) {
-  nextState.departments = structuredClone(seed.departments);
-  nextState.roles = structuredClone(seed.roles);
+  for (const key of ["departments", "roles"]) {
+    const savedOptions = Array.isArray(nextState[key]) ? nextState[key] : [];
+    nextState[key] = structuredClone(seed[key]);
+    for (const option of savedOptions) {
+      if (!option?.id || !String(option.name || "").trim()) continue;
+      if (!nextState[key].some(item => item.id === option.id)) {
+        nextState[key].push({ id: String(option.id), name: String(option.name).trim() });
+      }
+    }
+  }
   nextState.users = (nextState.users || []).map((u, index) => ({
     id: u.id,
     name: u.name,
@@ -88,6 +98,10 @@ function normalizeState(nextState) {
     return normalized;
   });
   nextState.progress ||= {};
+  nextState.parts = [...new Set([
+    ...(Array.isArray(nextState.parts) ? nextState.parts : []),
+    ...nextState.contents.map(content => content.part),
+  ].filter(part => typeof part === "string" && part.trim()).map(part => part.trim()))];
   nextState.submissions ||= [];
   nextState.submissionDriveUrl = nextState.submissionDriveUrl || "";
   nextState.dataVersion = DATA_VERSION;
@@ -120,7 +134,33 @@ function clearSession() { sessionStorage.removeItem(SESSION_KEY); session = null
 function $(id) { return document.getElementById(id); }
 function isAdmin() { return session?.role === "admin"; }
 function currentUser() { return state.users.find(u => u.id === currentUserId) || state.users[0]; }
-function deptName(id) { return state.departments.find(d => d.id === id)?.name || id; }
+function deptName(id) {
+  if (Array.isArray(id)) return id.map(deptName).join(", ");
+  return state.departments.find(d => d.id === id)?.name || id;
+}
+function contentDepartments(value) {
+  const ids = Array.isArray(value) ? value : [value || "all"];
+  return ids.includes("all") ? ["all"] : [...new Set(ids)];
+}
+function departmentChoices(value) {
+  const selected = contentDepartments(value);
+  return state.departments.map(dept => `<label><input type="checkbox" value="${escapeHtml(dept.id)}" ${selected.includes(dept.id) ? "checked" : ""} onchange="changeDepartmentChoice(this)" /><span>${escapeHtml(dept.name)}</span></label>`).join("");
+}
+function readDepartments(container) {
+  const selected = Array.from(container.querySelectorAll('input:checked'), input => input.value);
+  return contentDepartments(selected.length ? selected : "all");
+}
+function changeDepartmentChoice(input) {
+  const container = input.closest(".department-choices");
+  if (input.checked) {
+    container.querySelectorAll("input").forEach(other => {
+      if (input.value === "all" || other.value === "all") {
+        if (other !== input) other.checked = false;
+      }
+    });
+  }
+  if (!container.querySelector("input:checked")) container.querySelector('input[value="all"]').checked = true;
+}
 function roleName(id) { return state.roles.find(r => r.id === id)?.name || id; }
 function getProgress(userId, contentId) { return state.progress[`${userId}:${contentId}`] || { status: "미시작" }; }
 function isComplete(status) { return ["완료", "통과"].includes(status); }
@@ -128,7 +168,7 @@ function isReadyForNext(status) { return ["완료", "통과", "검토 중", "제
 function setProgress(userId, contentId, data) { state.progress[`${userId}:${contentId}`] = { ...getProgress(userId, contentId), ...data }; saveState(); }
 function getAssignedContents(u = currentUser()) {
   return state.contents
-    .filter(c => (c.dept === "all" || c.dept === u.departmentId) && (c.role === "all" || c.role === u.roleId))
+    .filter(c => (contentDepartments(c.dept).includes("all") || contentDepartments(c.dept).includes(u.departmentId)) && (c.role === "all" || c.role === u.roleId))
     .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, "ko"));
 }
 function canAccess(content, assigned = getAssignedContents()) {
@@ -357,12 +397,12 @@ function remoteSubmissionToLocal(item) {
   const content = state.contents.find(c => c.id === item.contentId || c.title === item.contentTitle);
   return {
     id: item.id,
-    userId: item.userId || user?.id || "",
+    userId: user?.id || item.userId || "",
     userName: item.userName || user?.name || "",
     department: item.department || user?.departmentId || "",
     role: item.role || user?.roleId || "",
-    contentId: item.contentId || content?.id || "",
-    contentTitle: item.contentTitle || content?.title || "",
+    contentId: state.submissionCourseOverrides?.[item.id] || item.contentId || content?.id || "",
+    contentTitle: state.submissionTitleOverrides?.[item.id] || item.contentTitle || content?.title || "",
     answers: item.answers || {},
     status: item.status || "검토 중",
     feedback: item.feedback || "",
@@ -525,6 +565,98 @@ function renderAdmin() {
   const contentRows = state.contents.map((c, contentIndex) => ({ c, contentIndex })).sort((a, b) => a.c.order - b.c.order || a.c.title.localeCompare(b.c.title, "ko")).map(({ c, contentIndex }, index) => `<tr class="content-edit-row" data-content-index="${contentIndex}" data-content-id="${escapeHtml(c.id)}"><td><div class="order-drag-cell"><span class="order-chip">${index + 1}</span><button class="drag-handle" type="button" onpointerdown="contentPointerStart(event)" title="드래그해서 순서 변경" aria-label="드래그해서 순서 변경">↕</button></div></td><td><input data-edit="part" value="${escapeHtml(c.part)}" /></td><td><input data-edit="title" value="${escapeHtml(c.title)}" /></td><td><select data-edit="type">${typeOptions(c.type)}</select></td><td><select data-edit="dept">${optionTags(state.departments, c.dept)}</select></td><td><select data-edit="role">${optionTags(state.roles, c.role)}</select></td><td><input data-edit="minutes" type="number" min="0" value="${c.minutes || 0}" /></td><td><textarea class="link-list-input" data-edit="url" placeholder="링크를 한 줄에 하나씩 입력">${escapeHtml(c.url || "")}</textarea></td><td><textarea data-edit="description">${escapeHtml(c.description || "")}</textarea></td><td class="row-actions"><button class="success-btn" onclick="updateContent(this)">저장</button><button class="danger-btn" onclick="deleteContent(this)">삭제</button></td></tr>`).join("");
   const reviewDriveButton = state.submissionDriveUrl ? `<button class="ghost" type="button" onclick="openExternalResource('${escapeHtml(state.submissionDriveUrl)}')">제출 드라이브 열기</button>` : "";
   $("adminView").innerHTML = `<div class="grid cols-2"><div class="card"><h3>제출 드라이브 설정</h3><div class="form-grid"><div class="field"><label>공유 드라이브 업로드 폴더 링크</label><input id="submissionDriveUrl" value="${escapeHtml(state.submissionDriveUrl || "")}" placeholder="https://drive.google.com/drive/folders/..." /></div><p class="muted">신입간사는 이 폴더에 문서를 업로드한 뒤, 공유 링크를 제출합니다.</p><button class="primary" type="button" onclick="saveSubmissionDriveUrl()">제출 드라이브 저장</button></div></div><div class="card"><h3>신입 간사 등록</h3><div class="form-grid"><div class="field"><label>이름</label><input id="newUserName" placeholder="홍길동" /></div><div class="field"><label>초기 비밀번호</label><input id="newUserPin" type="password" placeholder="숫자 4자리" /></div><div class="form-grid cols-2"><div class="field"><label>부서</label><select id="newUserDept">${state.departments.filter(d=>d.id!=="all").map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>역할</label><select id="newUserRole">${state.roles.filter(r=>r.id!=="all").map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><button class="primary" onclick="addUser()">간사 추가</button></div></div><div class="card"><h3>콘텐츠 추가</h3><div class="form-grid"><div class="field"><label>기존 과정 불러오기</label><div class="inline-action"><select id="cloneContentSource">${cloneOptions}</select><button class="ghost" type="button" onclick="fillContentFromTemplate()">복사</button></div></div><div class="field"><label>제목</label><input id="newContentTitle" placeholder="새 편집 기본 원칙" /></div><div class="form-grid cols-2"><div class="field"><label>파트</label><input id="newContentPart" value="파트 3. 역할별 훈련" /></div><div class="field"><label>유형</label><select id="newContentType">${typeOptions("문서")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>대상 부서</label><select id="newContentDept">${state.departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>대상 역할</label><select id="newContentRole">${state.roles.map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>예상 시간(분)</label><input id="newContentMinutes" type="number" min="0" value="30" /></div><div class="field"><label>링크</label><textarea id="newContentUrl" placeholder="링크를 한 줄에 하나씩 입력"></textarea></div></div><div class="field"><label>설명</label><textarea id="newContentDesc" placeholder="신입 간사에게 보일 안내문"></textarea></div><button class="primary" onclick="addContent()">콘텐츠 추가</button></div></div></div><p id="adminSaveNotice" class="save-notice" aria-live="polite"></p><div class="section-title"><h3>신입 간사 관리</h3><button class="ghost" type="button" onclick="saveAllUsers()">간사 전체 저장</button><button class="ghost" type="button" onclick="syncRemoteUsers()">시트 새로고침</button><span class="badge">${state.users.length}명</span></div><div class="card table-wrap"><table class="user-admin-table"><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>상태</th><th>비밀번호</th><th>관리</th></tr></thead><tbody>${userRows}</tbody></table></div><div class="section-title"><h3>훈련 과정 관리</h3><button class="ghost" type="button" onclick="saveAllContents()">과정 전체 저장</button><span class="badge">${state.contents.length}개 과정</span></div><div class="card table-wrap"><table class="content-admin-table"><thead><tr><th>순서 이동</th><th>파트</th><th>제목</th><th>유형</th><th>부서</th><th>역할</th><th>분</th><th>링크</th><th>설명</th><th>관리</th></tr></thead><tbody id="contentAdminBody">${contentRows}</tbody></table></div><div class="section-title"><h3>간사별 진행률</h3></div><div class="card table-wrap"><table><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>완료</th><th>진행률</th></tr></thead><tbody>${statsRows}</tbody></table></div><div class="section-title"><h3>제출물 검토</h3><div class="row-actions">${reviewDriveButton}<button class="ghost" type="button" onclick="syncRemoteSubmissions()">구글 시트 새로고침</button></div></div><div class="card table-wrap"><table><thead><tr><th>제출자</th><th>과제</th><th>제출 내용</th><th>상태</th><th>검토</th></tr></thead><tbody>${submissionRows || `<tr><td colspan="5" class="empty">검토할 제출물이 없습니다.</td></tr>`}</tbody></table></div>`;
+  $("adminView").insertAdjacentHTML("afterbegin", renderAssignmentSettings());
+  $("adminView").insertAdjacentHTML("afterbegin", renderPartSettings());
+  document.querySelectorAll('[data-edit="dept"], #newContentDept').forEach(select => {
+    const row = select.closest(".content-edit-row");
+    const dept = row ? state.contents[Number(row.dataset.contentIndex)].dept : "all";
+    const container = document.createElement("div");
+    container.className = "department-choices";
+    container.setAttribute("role", "group");
+    container.setAttribute("aria-label", "대상 부서");
+    if (row) container.dataset.edit = "dept";
+    else container.id = "newContentDept";
+    container.innerHTML = departmentChoices(dept);
+    select.replaceWith(container);
+  });
+  document.querySelectorAll('#newContentPart, [data-edit="part"]').forEach(input => input.setAttribute("list", "trainingPartOptions"));
+}
+function trainingParts() {
+  return [...new Set([...(state.parts || []), ...state.contents.map(content => content.part)].filter(Boolean))];
+}
+function renderPartSettings() {
+  const parts = trainingParts();
+  return `<section class="part-settings assignment-settings"><div class="section-title"><h3>훈련 과정 파트 관리</h3></div><form class="form-grid" onsubmit="event.preventDefault(); addTrainingPart()"><div class="field"><label for="newTrainingPart">새 파트 이름</label><div class="inline-action"><input id="newTrainingPart" maxlength="100" required placeholder="파트 3. 역할별 훈련" /><button class="primary" type="submit">파트 추가</button></div></div></form><div class="part-edit-list">${parts.map((part, index) => `<form class="part-edit-form field" data-part-index="${index}" onsubmit="event.preventDefault(); renameTrainingPart(${index})"><label for="trainingPart${index}">파트 이름 <span class="muted">(${state.contents.filter(content => content.part === part).length}개 과정)</span></label><div class="inline-action"><input id="trainingPart${index}" maxlength="100" required value="${escapeHtml(part)}" /><button class="success-btn" type="submit">이름 저장</button></div></form>`).join("")}</div><datalist id="trainingPartOptions">${parts.map(part => `<option value="${escapeHtml(part)}"></option>`).join("")}</datalist></section>`;
+}
+function addTrainingPart() {
+  if (!isAdmin()) return alert("관리자만 추가할 수 있습니다.");
+  const name = $("newTrainingPart").value.trim();
+  if (!name) return alert("파트 이름을 입력해 주세요.");
+  if (trainingParts().some(part => part.normalize("NFKC").toLocaleLowerCase() === name.normalize("NFKC").toLocaleLowerCase())) return alert("이미 등록된 파트 이름입니다.");
+  const previous = state.parts;
+  state.parts = [...trainingParts(), name];
+  if (!saveState()) { state.parts = previous; return; }
+  document.querySelector(".part-settings").outerHTML = renderPartSettings();
+  showAdminSaved("새 파트가 추가되었습니다.");
+}
+function renameTrainingPart(index) {
+  if (!isAdmin()) return alert("관리자만 수정할 수 있습니다.");
+  const parts = trainingParts();
+  const oldName = parts[index];
+  if (!oldName) return;
+  const name = $(`trainingPart${index}`).value.trim();
+  if (!name) return alert("파트 이름을 입력해 주세요.");
+  if (parts.some((part, partIndex) => partIndex !== index && part.normalize("NFKC").toLocaleLowerCase() === name.normalize("NFKC").toLocaleLowerCase())) return alert("이미 등록된 파트 이름입니다.");
+  const previousParts = state.parts;
+  const affected = state.contents.filter(content => content.part === oldName);
+  state.parts = parts.map(part => part === oldName ? name : part);
+  affected.forEach(content => { content.part = name; });
+  if (!saveState()) {
+    state.parts = previousParts;
+    affected.forEach(content => { content.part = oldName; });
+    return;
+  }
+  document.querySelectorAll('#newContentPart, [data-edit="part"]').forEach(input => {
+    if (input.value === oldName) input.value = name;
+  });
+  document.querySelector(".part-settings").outerHTML = renderPartSettings();
+  showAdminSaved("파트 이름과 소속 과정이 수정되었습니다.");
+}
+function renderAssignmentSettings() {
+  const sections = [
+    { key: "departments", label: "부서", inputId: "newDepartmentName" },
+    { key: "roles", label: "역할", inputId: "newRoleName" },
+  ];
+  return `<section class="assignment-settings"><div class="section-title"><h3>부서 및 역할 관리</h3></div><div class="grid cols-2">${sections.map(({ key, label, inputId }) => `<div><form class="form-grid" onsubmit="event.preventDefault(); addAssignmentOption('${key}')"><div class="field"><label for="${inputId}">${label} 이름</label><div class="inline-action"><input id="${inputId}" maxlength="60" required /><button class="primary" type="submit">${label} 추가</button></div></div></form><div class="meta-row">${state[key].filter(item => item.id !== "all").map(item => `<span class="badge">${escapeHtml(item.name)}</span>`).join("")}</div></div>`).join("")}</div></section>`;
+}
+function addAssignmentOption(key) {
+  if (!isAdmin()) return alert("관리자만 추가할 수 있습니다.");
+  if (!["departments", "roles"].includes(key)) return;
+  const label = key === "departments" ? "부서" : "역할";
+  const input = $(key === "departments" ? "newDepartmentName" : "newRoleName");
+  const name = input.value.trim();
+  if (!name) return alert(`${label} 이름을 입력해 주세요.`);
+  if (state[key].some(item => item.name.normalize("NFKC").toLocaleLowerCase() === name.normalize("NFKC").toLocaleLowerCase())) {
+    return alert(`이미 등록된 ${label} 이름입니다.`);
+  }
+  const option = { id: `${key}_${crypto.randomUUID()}`, name };
+  state[key].push(option);
+  if (!saveState()) {
+    state[key].pop();
+    return;
+  }
+  // Refresh option lists without discarding unsaved user or course edits.
+  const selectors = key === "departments"
+    ? ['#newUserDept', '#newContentDept', '[data-user-edit="departmentId"]', '[data-edit="dept"]']
+    : ['#newUserRole', '#newContentRole', '[data-user-edit="roleId"]', '[data-edit="role"]'];
+  document.querySelectorAll(selectors.join(",")).forEach(select => {
+    if (select.classList.contains("department-choices")) {
+      const selected = readDepartments(select);
+      select.innerHTML = departmentChoices(selected);
+    } else select.add(new Option(name, option.id));
+  });
+  document.querySelector(".assignment-settings:not(.part-settings)").outerHTML = renderAssignmentSettings();
+  showAdminSaved(`${label} '${name}'이 추가되었습니다.`);
 }
 async function updateUser(userId) {
   if (!isAdmin()) return alert("관리자만 수정할 수 있습니다.");
@@ -642,7 +774,7 @@ function saveContentRowsFromScreen() {
     content.part = value("part") || "기타 과정";
     content.title = value("title") || content.title;
     content.type = value("type");
-    content.dept = value("dept");
+    content.dept = readDepartments(row.querySelector('[data-edit="dept"]'));
     content.role = value("role");
     content.minutes = Number(value("minutes")) || 0;
     content.url = value("url");
@@ -661,7 +793,7 @@ function updateContent(button) {
   content.part = value("part") || "기타 과정";
   content.title = title;
   content.type = value("type");
-  content.dept = value("dept");
+  content.dept = readDepartments(row.querySelector('[data-edit="dept"]'));
   content.role = value("role");
   content.minutes = Number(value("minutes")) || 0;
   content.url = value("url");
@@ -826,7 +958,7 @@ function fillContentFromTemplate() {
   $("newContentTitle").value = `${source.title} 복사본`;
   $("newContentPart").value = source.part || "";
   $("newContentType").value = source.type || "문서";
-  $("newContentDept").value = source.dept || "all";
+  $("newContentDept").innerHTML = departmentChoices(source.dept);
   $("newContentRole").value = source.role || "all";
   $("newContentMinutes").value = source.minutes || 0;
   $("newContentUrl").value = source.url || "";
@@ -837,7 +969,7 @@ function addContent() {
   if (!isAdmin()) return alert("관리자만 추가할 수 있습니다.");
   const title = $("newContentTitle").value.trim();
   if (!title) return alert("콘텐츠 제목을 입력해 주세요.");
-  state.contents.push({ id: nextContentId(), part: $("newContentPart").value.trim() || "파트 3. 역할별 훈련", title, type: $("newContentType").value, dept: $("newContentDept").value, role: $("newContentRole").value, order: Math.max(...state.contents.map(c => c.order)) + 1, minutes: Number($("newContentMinutes").value) || 0, url: $("newContentUrl").value.trim(), description: $("newContentDesc").value.trim() || "관리자가 추가한 훈련 콘텐츠입니다." });
+  state.contents.push({ id: nextContentId(), part: $("newContentPart").value.trim() || "파트 3. 역할별 훈련", title, type: $("newContentType").value, dept: readDepartments($("newContentDept")), role: $("newContentRole").value, order: Math.max(...state.contents.map(c => c.order)) + 1, minutes: Number($("newContentMinutes").value) || 0, url: $("newContentUrl").value.trim(), description: $("newContentDesc").value.trim() || "관리자가 추가한 훈련 콘텐츠입니다." });
   if (!saveState()) return;
   renderAll();
   switchView("admin");
