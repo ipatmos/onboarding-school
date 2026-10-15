@@ -1,9 +1,7 @@
-﻿const STORAGE_KEY = "onboarding-school-v2";
-const SESSION_KEY = "onboarding-session-v1";
+﻿const STORAGE_KEY = "onboarding-school-secure-v1";
+const SESSION_KEY = "onboarding-session-secure-v1";
 const DATA_VERSION = "20260630-1605";
-const ADMIN_PASSWORD = "admin123";
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzosPkWStMnym-kJYvKVrlv5_2q5kCFEar1xLFXj_UIB-L6rHShd1PAlIgK7o_x01aw/exec";
-const SHEET_API_TOKEN = "patmos-onboarding-2026";
 const ONBOARDING_PURPOSE = "새롭게 섹션A의 식구가 된 간사가 본격적인 실무에 들어가기 전에 업무를 수행하는데 있어서 필요한 공동체 이해, 직무 수행에 필요한 기초 역량 강화, 담당하게 될 업무 사전준비를 통해 조기 적응력을 가속화시켜 주어진 업무를 정직하고 책임감 있는 자세로 열정을 다해 수행하도록 돕기 위한 과정입니다.";
 
 const seed = {
@@ -20,7 +18,7 @@ const seed = {
     { id: "design", name: "디자인" },
   ],
   users: [
-    { id: "u1", name: "나현영", departmentId: "holy", roleId: "edit", status: "신입", pin: "0000" },
+    { id: "u1", name: "나현영", departmentId: "holy", roleId: "edit", status: "신입", pin: "" },
   ],
   contents: [
     { id: "C001", part: "파트 1. 공동체 이해", title: "내규와 생활수칙 확인", type: "문서", dept: "all", role: "all", order: 1, minutes: 30, url: "https://drive.google.com/drive/folders/1IBzMMxVg9wDus_ll5mewSa4vddbElHms?usp=drive_link", description: "구글드라이브에 공유된 내규와 생활수칙 문서를 읽고 확인합니다. 이해되지 않는 부분이 있으면 질문을 남깁니다." },
@@ -48,13 +46,14 @@ let state = normalizeState(loadState());
 let session = loadSession();
 let currentUserId = session?.role === "trainee" ? session.userId : state.users[0]?.id;
 let activeView = "dashboard";
+let loginUsers = [];
 
 function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("onboarding-school-v2");
   if (!saved) return structuredClone(seed);
   try {
     const parsed = JSON.parse(saved);
-    return { ...structuredClone(seed), ...parsed };
+    return { ...structuredClone(seed), ...parsed, submissions: [], progress: {} };
   }
   catch { return structuredClone(seed); }
 }
@@ -75,7 +74,7 @@ function normalizeState(nextState) {
     departmentId: u.departmentId,
     roleId: u.roleId,
     status: u.status || "훈련 중",
-    pin: u.pin || (index === 0 ? "1111" : index === 1 ? "2222" : "0000"),
+    pin: "",
   }));
   let contentIdCounter = (nextState.contents || []).reduce((max, c) => {
     const match = String(c.id || "").match(/^C(\d+)$/);
@@ -105,12 +104,13 @@ function normalizeState(nextState) {
   nextState.submissions ||= [];
   nextState.submissionDriveUrl = nextState.submissionDriveUrl || "";
   nextState.dataVersion = DATA_VERSION;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...nextState, users: [], submissions: [], progress: {} }));
   return nextState;
 }
 function saveState() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, users: [], submissions: [], progress: {} }));
+    if (isAdmin() && session?.token) scheduleConfigSave();
     return true;
   } catch (error) {
     alert("브라우저 저장소에 저장하지 못했습니다. 저장 공간 또는 브라우저 설정을 확인해 주세요.");
@@ -132,7 +132,7 @@ function loadSession() {
 function saveSession(value) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); }
 function clearSession() { sessionStorage.removeItem(SESSION_KEY); session = null; }
 function $(id) { return document.getElementById(id); }
-function isAdmin() { return session?.role === "admin"; }
+function isAdmin() { return Boolean(session?.token && session?.role === "admin"); }
 function currentUser() { return state.users.find(u => u.id === currentUserId) || state.users[0]; }
 function deptName(id) {
   if (Array.isArray(id)) return id.map(deptName).join(", ");
@@ -262,29 +262,55 @@ function escapeHtml(value = "") {
 }
 
 function renderLoginOptions() {
-  $("loginAccount").innerHTML = `<option value="admin">관리자</option>` + state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join("");
+  const accounts = loginUsers.length ? loginUsers : state.users;
+  $("loginAccount").innerHTML = `<option value="admin">관리자</option>` + accounts.map(u => `<option value="${escapeHtml(u.id)}">${escapeHtml(u.name)}</option>`).join("");
 }
-function handleLogin(event) {
+async function handleLogin(event) {
   event.preventDefault();
   const account = $("loginAccount").value;
   const password = $("loginPassword").value.trim();
-  if (account === "admin") {
-    if (password !== ADMIN_PASSWORD) return showLoginError("관리자 비밀번호가 맞지 않습니다.");
-    session = { role: "admin" };
-    currentUserId = state.users[0]?.id;
-    activeView = "admin";
-  } else {
-    const target = state.users.find(u => u.id === account);
-    if (!target || password !== target.pin) return showLoginError("비밀번호가 맞지 않습니다.");
-    session = { role: "trainee", userId: target.id };
-    currentUserId = target.id;
-    activeView = "dashboard";
-  }
-  saveSession(session);
-  $("loginPassword").value = "";
-  showApp();
+  const button = event.target.querySelector('button[type="submit"]');
+  if (button) button.disabled = true;
+  try {
+    const result = await sheetJsonp({ action: "login", account, password });
+    session = result.session;
+    currentUserId = session.role === "admin" ? state.users[0]?.id : session.userId;
+    activeView = session.role === "admin" ? "admin" : "dashboard";
+    if (result.config) applyRemoteConfig(result.config);
+    state.users = result.users.map(remoteUserToLocal);
+    if (session.role === "admin") currentUserId = state.users[0]?.id;
+    state.submissions = [];
+    state.progress = {};
+    saveSession(session);
+    saveState();
+    $("loginPassword").value = "";
+    showApp();
+  } catch (error) {
+    showLoginError(error.message || "로그인에 실패했습니다.");
+  } finally { if (button) button.disabled = false; }
 }
 function showLoginError(message) { $("loginError").textContent = message; }
+async function resumeServerSession() {
+  try {
+    const submissions = await sheetJsonp({ action: "list" });
+    const accounts = await sheetJsonp({ action: "users-list" });
+    if (submissions.config) applyRemoteConfig(submissions.config);
+    state.users = accounts.users.map(remoteUserToLocal);
+    state.submissions = submissions.submissions.map(remoteSubmissionToLocal);
+    state.progress = {};
+    refreshProgressFromSubmissions();
+    currentUserId = isAdmin() ? state.users[0]?.id : session.userId;
+    activeView = isAdmin() ? "admin" : "dashboard";
+    lastSheetSyncAt = Date.now();
+    saveState();
+    showApp();
+  } catch (error) {
+    clearSession();
+    showLogin();
+    showLoginError(error.message);
+    syncRemoteUsers({ silent: true });
+  }
+}
 function showApp() {
   $("loginScreen").classList.add("hidden");
   $("appShell").classList.remove("hidden");
@@ -298,7 +324,11 @@ function showLogin() {
   $("loginError").textContent = "";
 }
 function logout() {
+  if (session?.token) sheetJsonp({ action: "logout" }).catch(() => {});
   clearSession();
+  state.submissions = [];
+  state.progress = {};
+  state.users = [];
   currentUserId = state.users[0]?.id;
   showLogin();
 }
@@ -361,36 +391,66 @@ function nextContentId() {
   }
   return id;
 }
-function sheetRequestUrl(params = {}) {
-  const url = new URL(SHEET_API_URL);
-  url.searchParams.set("token", SHEET_API_TOKEN);
-  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value ?? ""));
-  return url.toString();
-}
 function sheetJsonp(params = {}) {
   return new Promise((resolve, reject) => {
-    const callback = `sheetCb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const script = document.createElement("script");
+    const requestId = crypto.randomUUID();
+    const frame = document.createElement("iframe");
+    frame.name = `request_${requestId}`;
+    frame.hidden = true;
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = SHEET_API_URL;
+    form.target = frame.name;
+    form.hidden = true;
+    const input = document.createElement("input");
+    input.name = "payload";
+    input.value = JSON.stringify({ ...params, sessionToken: session?.token || "", requestId, callerOrigin: location.origin });
+    form.appendChild(input);
     const timeout = window.setTimeout(() => {
       cleanup();
       reject(new Error("Google Sheet 응답 시간이 초과되었습니다."));
-    }, 12000);
+    }, 45000);
     function cleanup() {
       window.clearTimeout(timeout);
-      delete window[callback];
-      script.remove();
+      window.removeEventListener("message", receive);
+      form.remove();
+      frame.remove();
     }
-    window[callback] = data => {
+    function receive(event) {
+      let host;
+      try { host = new URL(event.origin).hostname; } catch { return; }
+      const trustedHost = host === "script.google.com" || host === "script.googleusercontent.com" || host.endsWith(".googleusercontent.com");
+      if (!trustedHost || !event.origin.startsWith("https://") || event.data?.requestId !== requestId) return;
       cleanup();
-      resolve(data);
-    };
-    script.onerror = () => {
-      cleanup();
-      reject(new Error("Google Sheet에 연결하지 못했습니다."));
-    };
-    script.src = sheetRequestUrl({ ...params, callback });
-    document.body.appendChild(script);
+      const result = event.data.result;
+      if (!result?.ok) {
+        if (result?.code === "UNAUTHORIZED") { clearSession(); showLogin(); }
+        reject(new Error(result?.error || "요청을 처리하지 못했습니다."));
+      } else resolve(result);
+    }
+    window.addEventListener("message", receive);
+    document.body.append(frame, form);
+    form.submit();
   });
+}
+function configForSheet() {
+  return { contents: state.contents, parts: trainingParts(), departments: state.departments, roles: state.roles,
+    submissionDriveUrl: state.submissionDriveUrl, submissionCourseOverrides: state.submissionCourseOverrides || {},
+    submissionTitleOverrides: state.submissionTitleOverrides || {} };
+}
+function applyRemoteConfig(config) {
+  for (const key of ["contents", "parts", "departments", "roles", "submissionDriveUrl", "submissionCourseOverrides", "submissionTitleOverrides"]) {
+    if (config[key] !== undefined) state[key] = config[key];
+  }
+}
+let configSaveTimer;
+function scheduleConfigSave() {
+  window.clearTimeout(configSaveTimer);
+  configSaveTimer = window.setTimeout(async () => {
+    if (!isAdmin()) return;
+    try { await sheetJsonp({ action: "config-save", config: configForSheet() }); }
+    catch (error) { alert(`설정을 서버에 저장하지 못했습니다: ${error.message}`); }
+  }, 800);
 }
 function remoteSubmissionToLocal(item) {
   const user = state.users.find(u => u.id === item.userId || u.name === item.userName);
@@ -426,10 +486,11 @@ function refreshProgressFromSubmissions() {
 let sheetSyncInFlight = false;
 let lastSheetSyncAt = 0;
 async function syncRemoteSubmissions({ silent = false } = {}) {
-  if (sheetSyncInFlight) return;
+  if (!session?.token || sheetSyncInFlight) return;
   sheetSyncInFlight = true;
   try {
     const result = await sheetJsonp({ action: "list" });
+    if (result.config) applyRemoteConfig(result.config);
     if (!result?.ok) throw new Error(result?.error || "제출물 목록을 불러오지 못했습니다.");
     state.submissions = (result.submissions || []).map(remoteSubmissionToLocal);
     refreshProgressFromSubmissions();
@@ -445,13 +506,7 @@ async function syncRemoteSubmissions({ silent = false } = {}) {
   }
 }
 function submitToSheet(submission) {
-  if (!SHEET_API_URL) return;
-  fetch(SHEET_API_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "submit", token: SHEET_API_TOKEN, submission }),
-  }).catch(() => {});
+  return sheetJsonp({ action: "submit", submission });
 }
 async function reviewSubmissionOnSheet(submissionId, status, feedback) {
   if (!SHEET_API_URL) return;
@@ -469,7 +524,7 @@ function remoteUserToLocal(item, index = 0) {
     departmentId: item.departmentId || item.department || "holy",
     roleId: item.roleId || item.role || "edit",
     status: item.status || "훈련 중",
-    pin: item.pin || localUser?.pin || "0000",
+    pin: "",
   };
 }
 function usersForSheet() {
@@ -479,19 +534,15 @@ function usersForSheet() {
     departmentId: u.departmentId || "holy",
     roleId: u.roleId || "edit",
     status: u.status || "훈련 중",
-    pin: u.pin || "0000",
+    pin: u.pin || "",
   }));
 }
-function saveUsersToSheet({ silent = true } = {}) {
-  if (!SHEET_API_URL) return;
-  fetch(SHEET_API_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "users-save", token: SHEET_API_TOKEN, users: usersForSheet() }),
-  }).catch(() => {
-    if (!silent) alert("간사 목록을 Google Sheet에 저장하지 못했습니다.");
-  });
+async function saveUsersToSheet() {
+  try {
+    await sheetJsonp({ action: "users-save", users: usersForSheet() });
+    state.users.forEach(user => { user.pin = ""; });
+    return true;
+  } catch (error) { alert(error.message); return false; }
 }
 let userSyncInFlight = false;
 async function syncRemoteUsers({ silent = false, rerender = true } = {}) {
@@ -500,6 +551,11 @@ async function syncRemoteUsers({ silent = false, rerender = true } = {}) {
   try {
     const result = await sheetJsonp({ action: "users-list" });
     if (!result?.ok) throw new Error(result?.error || "간사 목록을 불러오지 못했습니다.");
+    if (!session?.token) {
+      loginUsers = result.users || [];
+      renderLoginOptions();
+      return;
+    }
     const remoteUsers = Array.isArray(result.users) ? result.users.map(remoteUserToLocal).filter(u => u.name.trim()) : [];
     if (remoteUsers.length) {
       state.users = remoteUsers;
@@ -507,8 +563,6 @@ async function syncRemoteUsers({ silent = false, rerender = true } = {}) {
       saveState();
       renderLoginOptions();
       if (rerender && session) renderAll();
-    } else {
-      saveUsersToSheet({ silent: true });
     }
     if (!silent && isAdmin()) showAdminSaved("간사 목록을 Google Sheet에서 불러왔습니다.");
   } catch (error) {
@@ -559,7 +613,7 @@ function renderSubmissionAnswers(submission) {
 }
 function renderAdmin() {
   if (!isAdmin()) { $("adminView").innerHTML = `<div class="card"><h3>접근할 수 없습니다.</h3><p class="muted">관리자 계정으로 로그인해야 합니다.</p></div>`; return; }
-  const userRows = state.users.map(u => `<tr class="user-edit-row" data-user-id="${u.id}"><td><input data-user-edit="name" value="${escapeHtml(u.name)}" /></td><td><select data-user-edit="departmentId">${optionTags(state.departments.filter(d => d.id !== "all"), u.departmentId)}</select></td><td><select data-user-edit="roleId">${optionTags(state.roles.filter(r => r.id !== "all"), u.roleId)}</select></td><td><input data-user-edit="status" value="${escapeHtml(u.status || "훈련 중")}" /></td><td><input data-user-edit="pin" value="${escapeHtml(u.pin || "0000")}" /></td><td class="row-actions"><button class="success-btn" onclick="updateUser('${u.id}')">저장</button><button class="danger-btn" onclick="deleteUser('${u.id}')">삭제</button></td></tr>`).join("");  const statsRows = state.users.map(u => { const st = getStats(u); return `<tr><td><strong>${u.name}</strong></td><td>${deptName(u.departmentId)}</td><td>${roleName(u.roleId)}</td><td>${st.completed}/${st.total}</td><td><div class="progress-bar"><div class="progress-fill" style="width:${st.percent}%"></div></div><span class="muted">${st.percent}%</span></td></tr>`; }).join("");
+  const userRows = state.users.map(u => `<tr class="user-edit-row" data-user-id="${u.id}"><td><input data-user-edit="name" value="${escapeHtml(u.name)}" /></td><td><select data-user-edit="departmentId">${optionTags(state.departments.filter(d => d.id !== "all"), u.departmentId)}</select></td><td><select data-user-edit="roleId">${optionTags(state.roles.filter(r => r.id !== "all"), u.roleId)}</select></td><td><input data-user-edit="status" value="${escapeHtml(u.status || "훈련 중")}" /></td><td><input type="password" placeholder="변경할 때만 입력" data-user-edit="pin" value="${escapeHtml(u.pin || "")}" /></td><td class="row-actions"><button class="success-btn" onclick="updateUser('${u.id}')">저장</button><button class="danger-btn" onclick="deleteUser('${u.id}')">삭제</button></td></tr>`).join("");  const statsRows = state.users.map(u => { const st = getStats(u); return `<tr><td><strong>${u.name}</strong></td><td>${deptName(u.departmentId)}</td><td>${roleName(u.roleId)}</td><td>${st.completed}/${st.total}</td><td><div class="progress-bar"><div class="progress-fill" style="width:${st.percent}%"></div></div><span class="muted">${st.percent}%</span></td></tr>`; }).join("");
   const submissionRows = state.submissions.slice().sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt)).map(s => { const u = state.users.find(x => x.id === s.userId); const c = state.contents.find(x => x.id === s.contentId); const userName = u?.name || s.userName || "-"; const department = u?.departmentId || s.department || ""; const role = u?.roleId || s.role || ""; return `<tr><td><strong>${escapeHtml(userName)}</strong><br><span class="muted">${deptName(department)} · ${roleName(role)}</span></td><td>${escapeHtml(c?.title || s.contentTitle || s.contentId)}<br><span class="muted">${formatDate(s.createdAt)}</span></td><td>${renderSubmissionAnswers(s)}</td><td>${statusBadge(s.status)}</td><td><button class="success-btn" onclick="reviewSubmission('${s.id}', '통과')">통과</button> <button class="ghost" onclick="reviewSubmission('${s.id}', '보완 요청')">보완</button> <button class="danger-btn" onclick="reviewSubmission('${s.id}', '반려')">반려</button> <button class="danger-btn" onclick="deleteSubmission('${s.id}')">삭제</button></td></tr>`; }).join("");
   const cloneOptions = state.contents.map((c, contentIndex) => ({ c, contentIndex })).sort((a, b) => a.c.order - b.c.order || a.c.title.localeCompare(b.c.title, "ko")).map(({ c, contentIndex }) => `<option value="${contentIndex}">${c.order}. ${escapeHtml(c.title)}</option>`).join("");
   const contentRows = state.contents.map((c, contentIndex) => ({ c, contentIndex })).sort((a, b) => a.c.order - b.c.order || a.c.title.localeCompare(b.c.title, "ko")).map(({ c, contentIndex }, index) => `<tr class="content-edit-row" data-content-index="${contentIndex}" data-content-id="${escapeHtml(c.id)}"><td><div class="order-drag-cell"><span class="order-chip">${index + 1}</span><button class="drag-handle" type="button" onpointerdown="contentPointerStart(event)" title="드래그해서 순서 변경" aria-label="드래그해서 순서 변경">↕</button></div></td><td><input data-edit="part" value="${escapeHtml(c.part)}" /></td><td><input data-edit="title" value="${escapeHtml(c.title)}" /></td><td><select data-edit="type">${typeOptions(c.type)}</select></td><td><select data-edit="dept">${optionTags(state.departments, c.dept)}</select></td><td><select data-edit="role">${optionTags(state.roles, c.role)}</select></td><td><input data-edit="minutes" type="number" min="0" value="${c.minutes || 0}" /></td><td><textarea class="link-list-input" data-edit="url" placeholder="링크를 한 줄에 하나씩 입력">${escapeHtml(c.url || "")}</textarea></td><td><textarea data-edit="description">${escapeHtml(c.description || "")}</textarea></td><td class="row-actions"><button class="success-btn" onclick="updateContent(this)">저장</button><button class="danger-btn" onclick="deleteContent(this)">삭제</button></td></tr>`).join("");
@@ -567,6 +621,7 @@ function renderAdmin() {
   $("adminView").innerHTML = `<div class="grid cols-2"><div class="card"><h3>제출 드라이브 설정</h3><div class="form-grid"><div class="field"><label>공유 드라이브 업로드 폴더 링크</label><input id="submissionDriveUrl" value="${escapeHtml(state.submissionDriveUrl || "")}" placeholder="https://drive.google.com/drive/folders/..." /></div><p class="muted">신입간사는 이 폴더에 문서를 업로드한 뒤, 공유 링크를 제출합니다.</p><button class="primary" type="button" onclick="saveSubmissionDriveUrl()">제출 드라이브 저장</button></div></div><div class="card"><h3>신입 간사 등록</h3><div class="form-grid"><div class="field"><label>이름</label><input id="newUserName" placeholder="홍길동" /></div><div class="field"><label>초기 비밀번호</label><input id="newUserPin" type="password" placeholder="숫자 4자리" /></div><div class="form-grid cols-2"><div class="field"><label>부서</label><select id="newUserDept">${state.departments.filter(d=>d.id!=="all").map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>역할</label><select id="newUserRole">${state.roles.filter(r=>r.id!=="all").map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><button class="primary" onclick="addUser()">간사 추가</button></div></div><div class="card"><h3>콘텐츠 추가</h3><div class="form-grid"><div class="field"><label>기존 과정 불러오기</label><div class="inline-action"><select id="cloneContentSource">${cloneOptions}</select><button class="ghost" type="button" onclick="fillContentFromTemplate()">복사</button></div></div><div class="field"><label>제목</label><input id="newContentTitle" placeholder="새 편집 기본 원칙" /></div><div class="form-grid cols-2"><div class="field"><label>파트</label><input id="newContentPart" value="파트 3. 역할별 훈련" /></div><div class="field"><label>유형</label><select id="newContentType">${typeOptions("문서")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>대상 부서</label><select id="newContentDept">${state.departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join("")}</select></div><div class="field"><label>대상 역할</label><select id="newContentRole">${state.roles.map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}</select></div></div><div class="form-grid cols-2"><div class="field"><label>예상 시간(분)</label><input id="newContentMinutes" type="number" min="0" value="30" /></div><div class="field"><label>링크</label><textarea id="newContentUrl" placeholder="링크를 한 줄에 하나씩 입력"></textarea></div></div><div class="field"><label>설명</label><textarea id="newContentDesc" placeholder="신입 간사에게 보일 안내문"></textarea></div><button class="primary" onclick="addContent()">콘텐츠 추가</button></div></div></div><p id="adminSaveNotice" class="save-notice" aria-live="polite"></p><div class="section-title"><h3>신입 간사 관리</h3><button class="ghost" type="button" onclick="saveAllUsers()">간사 전체 저장</button><button class="ghost" type="button" onclick="syncRemoteUsers()">시트 새로고침</button><span class="badge">${state.users.length}명</span></div><div class="card table-wrap"><table class="user-admin-table"><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>상태</th><th>비밀번호</th><th>관리</th></tr></thead><tbody>${userRows}</tbody></table></div><div class="section-title"><h3>훈련 과정 관리</h3><button class="ghost" type="button" onclick="saveAllContents()">과정 전체 저장</button><span class="badge">${state.contents.length}개 과정</span></div><div class="card table-wrap"><table class="content-admin-table"><thead><tr><th>순서 이동</th><th>파트</th><th>제목</th><th>유형</th><th>부서</th><th>역할</th><th>분</th><th>링크</th><th>설명</th><th>관리</th></tr></thead><tbody id="contentAdminBody">${contentRows}</tbody></table></div><div class="section-title"><h3>간사별 진행률</h3></div><div class="card table-wrap"><table><thead><tr><th>이름</th><th>부서</th><th>역할</th><th>완료</th><th>진행률</th></tr></thead><tbody>${statsRows}</tbody></table></div><div class="section-title"><h3>제출물 검토</h3><div class="row-actions">${reviewDriveButton}<button class="ghost" type="button" onclick="syncRemoteSubmissions()">구글 시트 새로고침</button></div></div><div class="card table-wrap"><table><thead><tr><th>제출자</th><th>과제</th><th>제출 내용</th><th>상태</th><th>검토</th></tr></thead><tbody>${submissionRows || `<tr><td colspan="5" class="empty">검토할 제출물이 없습니다.</td></tr>`}</tbody></table></div>`;
   $("adminView").insertAdjacentHTML("afterbegin", renderAssignmentSettings());
   $("adminView").insertAdjacentHTML("afterbegin", renderPartSettings());
+  $("adminView").insertAdjacentHTML("beforeend", `<section class="password-settings"><div class="section-title"><h3>관리자 비밀번호 변경</h3></div><form id="adminPasswordForm" class="form-grid" onsubmit="changeAdminPassword(event)"><div class="field"><label for="currentAdminPassword">현재 비밀번호</label><input id="currentAdminPassword" type="password" autocomplete="current-password" required /></div><div class="form-grid cols-2"><div class="field"><label for="newAdminPassword">새 비밀번호</label><input id="newAdminPassword" type="password" autocomplete="new-password" minlength="8" maxlength="8" placeholder="8자리" required /></div><div class="field"><label for="confirmAdminPassword">새 비밀번호 확인</label><input id="confirmAdminPassword" type="password" autocomplete="new-password" minlength="8" maxlength="8" placeholder="8자리" required /></div></div><button class="primary" type="submit">비밀번호 변경</button><p id="passwordChangeError" role="alert"></p></form></section>`);
   document.querySelectorAll('[data-edit="dept"], #newContentDept').forEach(select => {
     const row = select.closest(".content-edit-row");
     const dept = row ? state.contents[Number(row.dataset.contentIndex)].dept : "all";
@@ -583,6 +638,31 @@ function renderAdmin() {
 }
 function trainingParts() {
   return [...new Set([...(state.parts || []), ...state.contents.map(content => content.part)].filter(Boolean))];
+}
+async function changeAdminPassword(event) {
+  event.preventDefault();
+  if (!isAdmin()) return;
+  const currentPassword = $("currentAdminPassword").value;
+  const newPassword = $("newAdminPassword").value;
+  const error = $("passwordChangeError");
+  if (newPassword !== $("confirmAdminPassword").value) { error.textContent = "새 비밀번호가 서로 다릅니다."; return; }
+  if (newPassword.length !== 8) { error.textContent = "새 비밀번호는 정확히 8자로 입력해 주세요."; return; }
+  if (newPassword === currentPassword) { error.textContent = "현재와 다른 새 비밀번호를 입력해 주세요."; return; }
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  error.textContent = "";
+  window.clearTimeout(configSaveTimer);
+  try {
+    await sheetJsonp({ action: "password-change", currentPassword, newPassword });
+    event.target.reset();
+    clearSession();
+    state.submissions = [];
+    state.progress = {};
+    state.users = [];
+    showLogin();
+    showLoginError("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.");
+  } catch (failure) { error.textContent = failure.message; }
+  finally { button.disabled = false; }
 }
 function renderPartSettings() {
   const parts = trainingParts();
@@ -670,9 +750,9 @@ async function updateUser(userId) {
   target.departmentId = value("departmentId");
   target.roleId = value("roleId");
   target.status = value("status") || "훈련 중";
-  target.pin = value("pin") || "0000";
+  target.pin = value("pin");
   if (!saveState()) return;
-  saveUsersToSheet({ silent: true });
+  if (!await saveUsersToSheet()) return;
   renderLoginOptions();
   renderAll();
   switchView("admin");
@@ -690,10 +770,10 @@ async function saveAllUsers() {
     target.departmentId = value("departmentId");
     target.roleId = value("roleId");
     target.status = value("status") || "훈련 중";
-    target.pin = value("pin") || "0000";
+    target.pin = value("pin");
   });
   if (!saveState()) return;
-  saveUsersToSheet({ silent: true });
+  if (!await saveUsersToSheet()) return;
   renderLoginOptions();
   renderAll();
   switchView("admin");
@@ -710,7 +790,7 @@ async function deleteUser(userId) {
   Object.keys(state.progress).forEach(key => { if (key.startsWith(`${userId}:`)) delete state.progress[key]; });
   if (currentUserId === userId) currentUserId = state.users[0]?.id;
   saveState();
-  saveUsersToSheet({ silent: true });
+  if (!await saveUsersToSheet()) return;
   renderLoginOptions();
   renderAll();
   switchView("admin");
@@ -857,7 +937,7 @@ function submissionForm(content, fields, previousSubmission) {
   const fileUrlField = `<div class="field"><label>드라이브에 업로드한 문서 링크</label><input data-answer="fileUrl" value="${answers.fileUrl || ""}" placeholder="https://drive.google.com/..." /></div>`;
   return `<form class="form-grid" onsubmit="submitContent(event, '${content.id}')">${driveGuide}${rows}${fileUrlField}<button class="primary" type="submit">제출하기</button></form>`;
 }
-function submitContent(event, contentId) {
+async function submitContent(event, contentId) {
   event.preventDefault();
   if (isAdmin()) return;
   const answers = {};
@@ -877,10 +957,11 @@ function submitContent(event, contentId) {
     feedback: "",
     createdAt: new Date().toISOString(),
   };
+  try { await submitToSheet(submission); }
+  catch (error) { alert(error.message); return; }
   state.submissions.push(submission);
   setProgress(currentUserId, contentId, { status: "검토 중", submittedAt: submission.createdAt });
   if (!saveState()) return;
-  submitToSheet(submission);
   $("contentDialog").close();
   renderAll();
   switchView("submissions");
@@ -894,13 +975,14 @@ async function reviewSubmission(submissionId, status) {
     "보완 요청": "내용을 조금 더 구체적으로 보완해 주세요.",
     "반려": "다시 작성해 주세요.",
   };
+  const feedback = feedbackByStatus[status] || "";
+  try { await reviewSubmissionOnSheet(submissionId, status, feedback); }
+  catch (error) { alert(error.message || "구글 시트 검토 상태 저장에 실패했습니다."); return; }
   s.status = status;
-  s.feedback = feedbackByStatus[status] || "";
+  s.feedback = feedback;
   s.reviewedAt = new Date().toISOString();
   setProgress(s.userId, s.contentId, { status, completedAt: status === "통과" ? new Date().toISOString() : undefined });
   saveState();
-  try { await reviewSubmissionOnSheet(submissionId, status, s.feedback); }
-  catch (error) { alert(error.message || "구글 시트 검토 상태 저장에 실패했습니다."); }
   renderAll();
   switchView("admin");
   showAdminSaved(`제출물이 '${status}' 상태로 변경되었습니다.`);
@@ -939,12 +1021,13 @@ async function deleteSubmission(submissionId) {
 async function addUser() {
   if (!isAdmin()) return alert("관리자만 등록할 수 있습니다.");
   const name = $("newUserName").value.trim();
-  const pin = $("newUserPin").value.trim() || "0000";
+  const pin = $("newUserPin").value.trim();
+  if (!pin) return alert("초기 비밀번호를 입력해 주세요.");
   if (!name) return alert("이름을 입력해 주세요.");
   const newUser = { id: `u_${Date.now()}`, name, departmentId: $("newUserDept").value, roleId: $("newUserRole").value, status: "훈련 중", pin };
   state.users.push(newUser);
   if (!saveState()) return;
-  saveUsersToSheet({ silent: true });
+  if (!await saveUsersToSheet()) return;
   renderLoginOptions();
   renderAll();
   switchView("admin");
@@ -998,7 +1081,6 @@ function switchView(view) {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderLoginOptions();
-  syncRemoteUsers({ silent: true });
   $("loginForm").addEventListener("submit", handleLogin);
   document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("click", () => switchView(btn.dataset.view)));
   $("closeDialog").addEventListener("click", () => $("contentDialog").close());
@@ -1012,8 +1094,8 @@ document.addEventListener("DOMContentLoaded", () => {
       showLogin();
     }
   });
-  if (session?.role === "admin" || state.users.some(u => u.id === session?.userId)) showApp();
-  else showLogin();
+  if (session?.token) resumeServerSession();
+  else { showLogin(); syncRemoteUsers({ silent: true }); }
 });
 
 
